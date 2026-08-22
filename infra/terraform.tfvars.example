@@ -1,0 +1,12 @@
+aws_region         = "us-east-1"
+project_name       = "numberone"
+environment        = "lab"
+kubernetes_version = "1.33"
+
+# Use the role names made available by your AWS Academy Learner Lab.
+cluster_role_name = "LabRole"
+node_role_name    = "LabRole"
+
+# The public endpoint is required by GitHub-hosted runners. Restrict this list
+# if your execution environment has stable outbound addresses.
+endpoint_public_access_cidrs = ["0.0.0.0/0"]

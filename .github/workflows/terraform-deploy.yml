@@ -1,0 +1,101 @@
+name: Terraform deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform operation"
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-cloud-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    name: Terraform ${{ github.event.inputs.action || (github.ref_name == 'main' && 'apply' || 'plan') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: ${{ github.ref_name == 'main' && 'production' || 'homolog' }}
+
+    defaults:
+      run:
+        working-directory: infra
+
+    env:
+      AWS_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      TF_VAR_aws_region: us-east-1
+      TF_VAR_cluster_role_name: ${{ vars.EKS_CLUSTER_ROLE_NAME }}
+      TF_VAR_node_role_name: ${{ vars.EKS_NODE_ROLE_NAME }}
+      TF_VAR_kubernetes_version: ${{ vars.KUBERNETES_VERSION }}
+      TF_IN_AUTOMATION: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Prevent apply outside main
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' && github.ref_name != 'main'
+        run: |
+          echo "::error::Manual apply is allowed only from main."
+          exit 1
+
+      - name: Check required configuration
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          set -euo pipefail
+          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN TF_VAR_cluster_role_name TF_VAR_node_role_name TF_VAR_kubernetes_version TF_STATE_BUCKET; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::$name is not configured in the selected GitHub environment."
+              exit 1
+            fi
+          done
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Verify AWS Academy session
+        run: aws sts get-caller-identity
+
+      - name: Initialize Terraform
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="region=$AWS_REGION"
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Apply
+        if: github.ref_name == 'main' && (github.event_name == 'push' || github.event.inputs.action == 'apply')
+        run: terraform apply -input=false -auto-approve tfplan
