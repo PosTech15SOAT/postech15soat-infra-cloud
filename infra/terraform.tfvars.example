@@ -1,7 +1,7 @@
 aws_region         = "us-east-1"
 project_name       = "numberone"
 environment        = "lab"
-kubernetes_version = "1.33"
+kubernetes_version = "1.36"
 
 # Use the role names made available by your AWS Academy Learner Lab.
 cluster_role_name = "LabRole"

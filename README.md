@@ -64,7 +64,7 @@ Crie os environments `homolog` e `production`. Em ambos, configure:
 | Variable | `TF_STATE_BUCKET` | Bucket criado pelo bootstrap |
 | Variable | `EKS_CLUSTER_ROLE_NAME` | Nome da role IAM do cluster |
 | Variable | `EKS_NODE_ROLE_NAME` | Nome da role IAM dos nodes |
-| Variable | `KUBERNETES_VERSION` | Versão suportada pelo EKS, por exemplo `1.33` |
+| Variable | `KUBERNETES_VERSION` | Versão usada pelo EKS do projeto, atualmente `1.36` |
 
 O CI executa formatação e validação em pushes e pull requests. O workflow de
 deploy executa `plan` em `develop` e `plan` + `apply` em `main`. Isso evita manter
