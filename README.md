@@ -17,6 +17,7 @@ pipeline da aplicação pertencem ao repositório `numberone-app-auto-service-ap
 - AWS CLI;
 - credenciais temporárias de uma sessão ativa do AWS Academy Learner Lab;
 - roles IAM já disponibilizadas pelo Learner Lab para o cluster e seus nós.
+- NodePorts `30080` e `30081` reservados para os NLBs internos de homologação e produção.
 
 As credenciais temporárias incluem `AWS_SESSION_TOKEN`. Elas expiram quando a
 sessão do laboratório termina e precisam ser renovadas nos Secrets do GitHub.
@@ -51,6 +52,8 @@ terraform plan
 ```
 
 O lock do estado usa o próprio S3 (`use_lockfile`), sem tabela DynamoDB.
+Os outputs `vpc_id` e `private_subnet_ids` são consumidos pelo Terraform do
+repositório de autenticação para criar o VPC Link do API Gateway.
 
 ## GitHub Actions
 
@@ -64,7 +67,7 @@ Crie os environments `homolog` e `production`. Em ambos, configure:
 | Variable | `TF_STATE_BUCKET` | Bucket criado pelo bootstrap |
 | Variable | `EKS_CLUSTER_ROLE_NAME` | Nome da role IAM do cluster |
 | Variable | `EKS_NODE_ROLE_NAME` | Nome da role IAM dos nodes |
-| Variable | `KUBERNETES_VERSION` | Versão suportada pelo EKS, por exemplo `1.33` |
+| Variable | `KUBERNETES_VERSION` | Versão usada pelo EKS do projeto, atualmente `1.36` |
 
 O CI executa formatação e validação em pushes e pull requests. O workflow de
 deploy executa `plan` em `develop` e `plan` + `apply` em `main`. Isso evita manter

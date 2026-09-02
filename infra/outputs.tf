@@ -30,3 +30,8 @@ output "ecr_repository_url" {
 output "aws_region" {
   value = var.aws_region
 }
+
+output "api_node_ports" {
+  description = "NodePorts reachable only from inside the VPC for the API internal NLBs."
+  value       = var.api_node_ports
+}

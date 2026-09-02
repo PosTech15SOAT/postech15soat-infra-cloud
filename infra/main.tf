@@ -28,3 +28,20 @@ module "ecr" {
 
   repository_name = "${var.project_name}-auto-service-api"
 }
+
+resource "aws_vpc_security_group_ingress_rule" "api_internal_nlb" {
+  for_each = {
+    for port in var.api_node_ports : tostring(port) => port
+  }
+
+  security_group_id = module.eks.cluster_security_group_id
+  description       = "Allow private VPC traffic to the API NodePort"
+  cidr_ipv4         = var.vpc_cidr
+  from_port         = each.value
+  to_port           = each.value
+  ip_protocol       = "tcp"
+
+  tags = {
+    Name = "${local.name_prefix}-api-internal-nlb-${each.value}"
+  }
+}
