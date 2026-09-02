@@ -30,7 +30,9 @@ module "ecr" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "api_internal_nlb" {
-  for_each = var.api_node_ports
+  for_each = {
+    for port in var.api_node_ports : tostring(port) => port
+  }
 
   security_group_id = module.eks.cluster_security_group_id
   description       = "Allow private VPC traffic to the API NodePort"
