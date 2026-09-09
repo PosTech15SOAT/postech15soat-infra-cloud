@@ -29,6 +29,16 @@ module "ecr" {
   repository_name = "${var.project_name}-auto-service-api"
 }
 
+module "observability" {
+  source = "./modules/observability"
+
+  cluster_name    = module.eks.cluster_name
+  datadog_api_key = var.datadog_api_key
+  datadog_site    = var.datadog_site
+
+  depends_on = [module.eks]
+}
+
 resource "aws_vpc_security_group_ingress_rule" "api_internal_nlb" {
   for_each = {
     for port in var.api_node_ports : tostring(port) => port

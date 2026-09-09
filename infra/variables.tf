@@ -49,6 +49,7 @@ variable "private_subnet_cidrs" {
 variable "kubernetes_version" {
   description = "EKS Kubernetes version supported by the active Learner Lab."
   type        = string
+  default     = "1.36"
 }
 
 variable "cluster_role_name" {
@@ -95,10 +96,22 @@ variable "endpoint_public_access_cidrs" {
 variable "api_node_ports" {
   description = "NodePorts reserved for the API internal NLBs."
   type        = set(number)
-  default     = [30080, 30081]
+  default     = [30081]
 
   validation {
     condition     = alltrue([for port in var.api_node_ports : port >= 30000 && port <= 32767])
     error_message = "Every api_node_ports value must be within the Kubernetes NodePort range."
   }
+}
+
+variable "datadog_api_key" {
+  description = "Datadog API key used by the cluster agent."
+  type        = string
+  sensitive   = true
+}
+
+variable "datadog_site" {
+  description = "Datadog intake site."
+  type        = string
+  default     = "datadoghq.com"
 }
