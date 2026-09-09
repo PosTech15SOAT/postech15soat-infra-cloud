@@ -14,7 +14,8 @@ resource "helm_release" "datadog" {
   values = [
     yamlencode({
       datadog = {
-        site = var.datadog_site
+        site        = var.datadog_site
+        clusterName = var.cluster_name
 
         logs = {
           enabled             = true
