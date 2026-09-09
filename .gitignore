@@ -52,3 +52,5 @@ terraform.rc
 terraform.rc
 crash.log
 crash.*.log
+
+.idea

@@ -18,6 +18,11 @@ on:
         options:
           - plan
           - apply
+          - destroy
+      confirm_destroy:
+        description: 'Required only for destroy. Type "DESTROY" to confirm.'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -31,7 +36,7 @@ jobs:
     name: Terraform ${{ github.event.inputs.action || (github.ref_name == 'main' && 'apply' || 'plan') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    environment: ${{ github.ref_name == 'main' && 'production' || 'homolog' }}
+    environment: production
 
     defaults:
       run:
@@ -46,7 +51,7 @@ jobs:
       TF_VAR_aws_region: us-east-1
       TF_VAR_cluster_role_name: ${{ vars.EKS_CLUSTER_ROLE_NAME }}
       TF_VAR_node_role_name: ${{ vars.EKS_NODE_ROLE_NAME }}
-      TF_VAR_kubernetes_version: ${{ vars.KUBERNETES_VERSION }}
+      TF_VAR_datadog_api_key: ${{ secrets.DATADOG_API_KEY }}
       TF_IN_AUTOMATION: "true"
 
     steps:
@@ -59,12 +64,18 @@ jobs:
           echo "::error::Manual apply is allowed only from main."
           exit 1
 
+      - name: Prevent destroy unless explicitly confirmed on main
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' && (github.ref_name != 'main' || github.event.inputs.confirm_destroy != 'DESTROY')
+        run: |
+          echo "::error::Manual destroy is allowed only from main and requires confirm_destroy=DESTROY."
+          exit 1
+
       - name: Check required configuration
         env:
           TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
         run: |
           set -euo pipefail
-          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN TF_VAR_cluster_role_name TF_VAR_node_role_name TF_VAR_kubernetes_version TF_STATE_BUCKET; do
+          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN TF_VAR_cluster_role_name TF_VAR_node_role_name TF_VAR_datadog_api_key TF_STATE_BUCKET; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::$name is not configured in the selected GitHub environment."
               exit 1
@@ -94,8 +105,17 @@ jobs:
         run: terraform validate
 
       - name: Plan
+        if: github.event.inputs.action != 'destroy'
         run: terraform plan -input=false -out=tfplan
+
+      - name: Destroy plan
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' && github.ref_name == 'main' && github.event.inputs.confirm_destroy == 'DESTROY'
+        run: terraform plan -destroy -input=false -out=tfplan
 
       - name: Apply
         if: github.ref_name == 'main' && (github.event_name == 'push' || github.event.inputs.action == 'apply')
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Destroy
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' && github.ref_name == 'main' && github.event.inputs.confirm_destroy == 'DESTROY'
         run: terraform apply -input=false -auto-approve tfplan
