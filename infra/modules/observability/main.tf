@@ -29,6 +29,19 @@ resource "helm_release" "datadog" {
           }
         }
 
+        agents = {
+          containers = {
+            traceAgent = {
+              env = [
+                {
+                  name  = "DD_APM_IGNORE_RESOURCES"
+                  value = "^GET /actuator/health(/.*)?$"
+                }
+              ]
+            }
+          }
+        }
+
         dogstatsd = {
           useSocketVolume = false
           useHostPort     = true

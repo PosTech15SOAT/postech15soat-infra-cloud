@@ -54,7 +54,7 @@ Responsabilidades entre repositórios:
 | `numberone-app-auto-service-api` | aplicação Spring, manifests/deploy da aplicação, Service/NodePort, HPA, PDB e probes quando pertencentes ao workload |
 | `postech15soat-governance` | rulesets, branch protection e required checks |
 
-TODO: adicionar o diagrama final de infraestrutura/cloud da Fase 3.
+![Arquitetura cloud NumberOne](doc/diagrams/cloud/numberone-geral.drawio.png)
 
 ### NLB e conectividade privada
 
@@ -330,8 +330,11 @@ Arquivos de documentação existentes:
 - [`infra/terraform.tfvars.example`](infra/terraform.tfvars.example)
 - [`infra/bootstrap/terraform.tfvars.example`](infra/bootstrap/terraform.tfvars.example)
 
-Não foram encontrados diretórios `docs/`, `doc/`, diagramas, ADRs ou RFCs neste
-repositório.
+- [Fonte Draw.io dos diagramas cloud](doc/diagrams/cloud/numberone.drawio)
+- [RFC 0001 — AWS e contexto AWS Academy](doc/architecture/rfc/0001-escolha-aws-academy.md)
+- [RFC 0002 — Datadog para observabilidade](doc/architecture/rfc/0002-escolha-datadog.md)
+- [ADR 0001 — EKS e escalabilidade Kubernetes](doc/architecture/adr/0001-eks-e-escalabilidade-kubernetes.md)
+- [ADR 0002 — Observabilidade, logs e traces](doc/architecture/adr/0002-observabilidade-logs-e-traces.md)
 
 ## 🧠 Decisões Arquiteturais
 
