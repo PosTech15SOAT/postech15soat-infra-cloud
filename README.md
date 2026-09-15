@@ -301,6 +301,8 @@ O módulo [`infra/modules/observability`](infra/modules/observability) instala:
 
 A aplicação deve enviar APM para `hostIP:8126` e DogStatsD para `hostIP:8125`.
 Dashboards e monitors do Datadog não são provisionados por este Terraform.
+Como o Agent é compartilhado, exclusões de endpoints específicas da API são
+feitas no Java tracer da aplicação, sem filtro global de resources neste chart.
 
 ## 🗃️ State / Integração com outros repositórios
 
