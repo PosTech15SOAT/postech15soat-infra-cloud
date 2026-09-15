@@ -35,7 +35,7 @@ resource "helm_release" "datadog" {
               env = [
                 {
                   name  = "DD_APM_IGNORE_RESOURCES"
-                  value = "^GET /actuator/health(/.*)?$"
+                  value = "^get_/actuator/health(/.*)?$"
                 }
               ]
             }
