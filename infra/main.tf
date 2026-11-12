@@ -29,6 +29,12 @@ module "ecr" {
   repository_name = "${var.project_name}-auto-service-api"
 }
 
+module "billing_ecr" {
+  source = "./modules/ecr"
+
+  repository_name = "numberone-billing"
+}
+
 module "observability" {
   source = "./modules/observability"
 
