@@ -12,6 +12,8 @@ on:
 
   workflow_dispatch:
 
+  workflow_call:
+
 permissions:
   contents: read
 
@@ -39,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           test -s README.md
-          if [[ "$BASE_SHA" =~ ^0+$ ]]; then
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
             git diff-tree --check --no-commit-id --root -r "$HEAD_SHA"
           else
             git diff --check "$BASE_SHA" "$HEAD_SHA"

@@ -40,11 +40,21 @@ case "$service $operation" in
     [[ ${MOCK_SCENARIO:-} != account ]] || account=222222222222
     printf '{"Account":"%s","Arn":"arn:aws:sts::%s:assumed-role/LabRole/test"}\n' "$account" "$account" ;;
   's3api list-buckets')
+    [[ ${MOCK_SCENARIO:-} != list_denied ]] || { echo 'AccessDenied' >&2; exit 1; }
     if [[ -f $MOCK_HOME/bucket-exists ]]; then echo '["numberone-terraform-state"]'; else echo '[]'; fi ;;
   's3api head-bucket')
     if [[ ${MOCK_SCENARIO:-} == forbidden ]]; then echo 'An error occurred (403)' >&2; exit 1; fi
     if [[ ! -f $MOCK_HOME/bucket-exists ]]; then echo 'An error occurred (404)' >&2; exit 1; fi ;;
   's3api get-bucket-location')
+    if [[ ! -f $MOCK_HOME/bucket-exists ]]; then
+      case ${MOCK_SCENARIO:-} in
+        location_denied) echo 'An error occurred (AccessDenied) when calling the GetBucketLocation operation:' >&2; exit 1 ;;
+        location_network) echo 'Could not connect to the endpoint URL' >&2; exit 1 ;;
+        location_404) echo 'An error occurred (404) when calling the GetBucketLocation operation:' >&2; exit 1 ;;
+        location_inconsistent) echo '{"LocationConstraint":null}'; exit 0 ;;
+        *) echo 'An error occurred (NoSuchBucket) when calling the GetBucketLocation operation: The specified bucket does not exist' >&2; exit 1 ;;
+      esac
+    fi
     if [[ ${MOCK_SCENARIO:-} == region ]]; then echo '{"LocationConstraint":"sa-east-1"}'; else echo '{"LocationConstraint":null}'; fi ;;
   's3api get-bucket-versioning')
     if [[ ${MOCK_SCENARIO:-} == drift ]]; then echo '{"Status":"Suspended"}'; else echo '{"Status":"Enabled"}'; fi ;;
@@ -156,6 +166,47 @@ run_ok verify; [[ ! -s $MOCK_HOME/aws.calls ]]
 run_fail 'exige --plan' apply; [[ ! -s $MOCK_HOME/aws.calls ]]
 run_fail 'requer --aws' plan; [[ ! -s $MOCK_HOME/aws.calls ]]
 new_case; export MOCK_VERSION=1.9.8; run_fail incompatível check
+new_case; run_ok bucket-status "${remote[@]}"; [[ $(tail -1 "$MOCK_HOME/result.log") == bucket_status=missing ]]
+new_case; : >"$MOCK_HOME/bucket-exists"; run_ok bucket-status "${remote[@]}"; [[ $(tail -1 "$MOCK_HOME/result.log") == bucket_status=present ]]
+new_case; export MOCK_SCENARIO=account; run_fail 'Conta AWS divergente' bucket-status "${remote[@]}"
+new_case; export MOCK_SCENARIO=credentials; run_fail 'Credenciais ausentes' bucket-status "${remote[@]}"
+new_case; export MOCK_SCENARIO=list_denied; run_fail 'Não foi possível listar' bucket-status "${remote[@]}"
+new_case; export MOCK_SCENARIO=forbidden; run_fail 'HeadBucket negado' bucket-status "${remote[@]}"
+for scenario in location_denied location_network location_404; do
+  new_case; export MOCK_SCENARIO=$scenario; run_fail 'Ausência do bucket não comprovada' bucket-status "${remote[@]}"
+done
+new_case; export MOCK_SCENARIO=location_inconsistent; run_fail 'respondeu com sucesso' bucket-status "${remote[@]}"
+new_case; : >"$MOCK_HOME/bucket-exists"; export MOCK_SCENARIO=region; run_fail 'região divergente' bucket-status "${remote[@]}"
+# Execute the actual workflow step with mocked AWS and the same working directory.
+workflow_step() {
+  awk '
+    /^      - name: Verify state bucket and AWS account$/ {step=1; next}
+    step && /^        run: \|$/ {run=1; next}
+    run && /^      - name:/ {exit}
+    run && /^          / {sub(/^          /, ""); print}
+  ' "$repo_root/.github/workflows/terraform-deploy.yml" >"$MOCK_HOME/workflow-step.sh"
+  [[ -s $MOCK_HOME/workflow-step.sh ]] || { echo 'Passo do workflow ausente' >&2; exit 1; }
+  chmod +x "$MOCK_HOME/workflow-step.sh"
+  script="$MOCK_HOME/workflow-step.sh"
+  export AWS_ACCOUNT_ID=111111111111 TF_STATE_BUCKET=numberone-terraform-state
+  export GITHUB_OUTPUT="$MOCK_HOME/output" GITHUB_STEP_SUMMARY="$MOCK_HOME/summary"
+  : >"$GITHUB_OUTPUT"; : >"$GITHUB_STEP_SUMMARY"
+}
+new_case; workflow_step; export TERRAFORM_ACTION=plan; (cd "$MOCK_HOME/cloud/infra" && run_ok)
+grep -qx 'available=false' "$GITHUB_OUTPUT"; grep -q 'Bootstrap S3 pendente' "$GITHUB_STEP_SUMMARY"
+new_case; workflow_step; export TERRAFORM_ACTION=plan; : >"$MOCK_HOME/bucket-exists"; (cd "$MOCK_HOME/cloud/infra" && run_ok)
+grep -qx 'available=true' "$GITHUB_OUTPUT"; [[ ! -s $GITHUB_STEP_SUMMARY ]]
+for operation in apply destroy; do
+  new_case; workflow_step; export TERRAFORM_ACTION=$operation
+  (cd "$MOCK_HOME/cloud/infra" && run_fail 'Bootstrap S3 pendente')
+  [[ ! -s $GITHUB_OUTPUT ]]
+done
+for scenario in account credentials forbidden location_denied location_network location_404; do
+  new_case; workflow_step; export TERRAFORM_ACTION=plan MOCK_SCENARIO=$scenario
+  (cd "$MOCK_HOME/cloud/infra" && run_fail 'ERRO:')
+  [[ ! -s $GITHUB_OUTPUT && ! -s $GITHUB_STEP_SUMMARY ]]
+done
+unset AWS_ACCOUNT_ID TF_STATE_BUCKET GITHUB_OUTPUT GITHUB_STEP_SUMMARY TERRAFORM_ACTION
 new_case; export MOCK_SCENARIO=account; run_fail 'Conta AWS divergente' check "${remote[@]}"
 new_case; export MOCK_SCENARIO=credentials; run_fail 'Credenciais ausentes' check "${remote[@]}"
 new_case; run_fail 'Confirme --account' check --aws --account 111111111111
