@@ -19,6 +19,10 @@ on:
           - plan
           - apply
           - destroy
+      confirm_apply:
+        description: 'For apply, type "APPLY" after reviewing a plan.'
+        required: false
+        type: string
       confirm_destroy:
         description: 'Required only for destroy. Type "DESTROY" to confirm.'
         required: false
@@ -32,23 +36,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
   terraform:
-    name: Terraform ${{ github.event.inputs.action || (github.ref_name == 'main' && 'apply' || 'plan') }}
+    needs: validate
+    name: Terraform ${{ github.event.inputs.action || 'plan' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    environment: production
 
     defaults:
       run:
         working-directory: infra
 
     env:
-      AWS_REGION: us-east-1
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_DEFAULT_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      TERRAFORM_ACTION: ${{ github.event.inputs.action || 'plan' }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      TF_VAR_aws_region: us-east-1
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
       TF_VAR_cluster_role_name: ${{ vars.EKS_CLUSTER_ROLE_NAME }}
       TF_VAR_node_role_name: ${{ vars.EKS_NODE_ROLE_NAME }}
       TF_VAR_datadog_api_key: ${{ secrets.DATADOG_API_KEY }}
@@ -59,9 +69,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Prevent apply outside main
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' && github.ref_name != 'main'
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' && (github.ref_name != 'main' || github.event.inputs.confirm_apply != 'APPLY')
         run: |
-          echo "::error::Manual apply is allowed only from main."
+          echo "::error::Manual apply requires main and confirm_apply=APPLY."
           exit 1
 
       - name: Prevent destroy unless explicitly confirmed on main
@@ -71,13 +81,11 @@ jobs:
           exit 1
 
       - name: Check required configuration
-        env:
-          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
         run: |
           set -euo pipefail
-          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN TF_VAR_cluster_role_name TF_VAR_node_role_name TF_VAR_datadog_api_key TF_STATE_BUCKET; do
+          for name in AWS_REGION AWS_ACCOUNT_ID AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN TF_VAR_cluster_role_name TF_VAR_node_role_name TF_VAR_datadog_api_key TF_STATE_BUCKET; do
             if [[ -z "${!name:-}" ]]; then
-              echo "::error::$name is not configured in the selected GitHub environment."
+              echo "::error::$name is not configured in the repository or organization."
               exit 1
             fi
           done
@@ -86,36 +94,48 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.10.5
+          terraform_wrapper: false
 
-      - name: Verify AWS Academy session
-        run: aws sts get-caller-identity
+      - name: Verify state bucket and AWS account
+        id: bucket
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$(../scripts/bootstrap-state.sh bucket-status --aws --account "$AWS_ACCOUNT_ID" --region "$AWS_REGION")"
+          printf '%s\n' "$result"
+          case "${result##*$'\n'}" in
+            bucket_status=present) echo 'available=true' >> "$GITHUB_OUTPUT" ;;
+            bucket_status=missing)
+              if [[ "$TERRAFORM_ACTION" != plan ]]; then
+                echo '::error::Bootstrap S3 pendente: apply e destroy exigem o bucket existente.'
+                exit 1
+              fi
+              echo '::notice::Bootstrap S3 pendente: validações locais concluídas; plan remoto não executado.'
+              echo 'Bootstrap S3 pendente: validações locais concluídas; plan remoto não executado.' >> "$GITHUB_STEP_SUMMARY"
+              echo 'available=false' >> "$GITHUB_OUTPUT"
+              ;;
+            *) echo '::error::Resultado de verificação do bucket inconclusivo.'; exit 1 ;;
+          esac
 
       - name: Initialize Terraform
-        env:
-          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        if: steps.bucket.outputs.available == 'true'
         run: |
           terraform init -input=false \
             -backend-config="bucket=$TF_STATE_BUCKET" \
             -backend-config="region=$AWS_REGION"
 
-      - name: Check formatting
-        run: terraform fmt -check -recursive
-
-      - name: Validate
-        run: terraform validate
-
       - name: Plan
-        if: github.event.inputs.action != 'destroy'
+        if: steps.bucket.outputs.available == 'true' && github.event.inputs.action != 'destroy'
         run: terraform plan -input=false -out=tfplan
 
       - name: Destroy plan
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' && github.ref_name == 'main' && github.event.inputs.confirm_destroy == 'DESTROY'
+        if: steps.bucket.outputs.available == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' && github.ref_name == 'main' && github.event.inputs.confirm_destroy == 'DESTROY'
         run: terraform plan -destroy -input=false -out=tfplan
 
       - name: Apply
-        if: github.ref_name == 'main' && (github.event_name == 'push' || github.event.inputs.action == 'apply')
+        if: steps.bucket.outputs.available == 'true' && github.event_name == 'workflow_dispatch' && github.ref_name == 'main' && github.event.inputs.action == 'apply' && github.event.inputs.confirm_apply == 'APPLY'
         run: terraform apply -input=false -auto-approve tfplan
 
       - name: Destroy
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' && github.ref_name == 'main' && github.event.inputs.confirm_destroy == 'DESTROY'
+        if: steps.bucket.outputs.available == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' && github.ref_name == 'main' && github.event.inputs.confirm_destroy == 'DESTROY'
         run: terraform apply -input=false -auto-approve tfplan
