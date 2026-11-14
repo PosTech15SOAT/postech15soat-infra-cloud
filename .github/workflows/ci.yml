@@ -50,6 +50,11 @@ jobs:
         with:
           terraform_version: 1.10.5
 
+      - name: Validate bootstrap automation without AWS
+        run: |
+          bash -n scripts/bootstrap-state.sh scripts/bootstrap-state-ci.sh scripts/tests/bootstrap-state-test.sh
+          ./scripts/tests/bootstrap-state-test.sh
+
       - name: Check Terraform formatting
         run: terraform fmt -check -recursive
 

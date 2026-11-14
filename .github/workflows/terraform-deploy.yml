@@ -19,6 +19,10 @@ on:
           - plan
           - apply
           - destroy
+      confirm_apply:
+        description: 'For apply, type "APPLY" after reviewing a plan.'
+        required: false
+        type: string
       confirm_destroy:
         description: 'Required only for destroy. Type "DESTROY" to confirm.'
         required: false
@@ -33,22 +37,21 @@ concurrency:
 
 jobs:
   terraform:
-    name: Terraform ${{ github.event.inputs.action || (github.ref_name == 'main' && 'apply' || 'plan') }}
+    name: Terraform ${{ github.event.inputs.action || 'plan' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    environment: production
 
     defaults:
       run:
         working-directory: infra
 
     env:
-      AWS_REGION: us-east-1
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_DEFAULT_REGION: ${{ vars.AWS_REGION }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      TF_VAR_aws_region: us-east-1
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
       TF_VAR_cluster_role_name: ${{ vars.EKS_CLUSTER_ROLE_NAME }}
       TF_VAR_node_role_name: ${{ vars.EKS_NODE_ROLE_NAME }}
       TF_VAR_datadog_api_key: ${{ secrets.DATADOG_API_KEY }}
@@ -59,9 +62,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Prevent apply outside main
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' && github.ref_name != 'main'
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' && (github.ref_name != 'main' || github.event.inputs.confirm_apply != 'APPLY')
         run: |
-          echo "::error::Manual apply is allowed only from main."
+          echo "::error::Manual apply requires main and confirm_apply=APPLY."
           exit 1
 
       - name: Prevent destroy unless explicitly confirmed on main
@@ -75,9 +78,9 @@ jobs:
           TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
         run: |
           set -euo pipefail
-          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN TF_VAR_cluster_role_name TF_VAR_node_role_name TF_VAR_datadog_api_key TF_STATE_BUCKET; do
+          for name in AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN TF_VAR_cluster_role_name TF_VAR_node_role_name TF_VAR_datadog_api_key TF_STATE_BUCKET; do
             if [[ -z "${!name:-}" ]]; then
-              echo "::error::$name is not configured in the selected GitHub environment."
+              echo "::error::$name is not configured in the repository or organization."
               exit 1
             fi
           done
@@ -113,7 +116,7 @@ jobs:
         run: terraform plan -destroy -input=false -out=tfplan
 
       - name: Apply
-        if: github.ref_name == 'main' && (github.event_name == 'push' || github.event.inputs.action == 'apply')
+        if: github.event_name == 'workflow_dispatch' && github.ref_name == 'main' && github.event.inputs.action == 'apply' && github.event.inputs.confirm_apply == 'APPLY'
         run: terraform apply -input=false -auto-approve tfplan
 
       - name: Destroy

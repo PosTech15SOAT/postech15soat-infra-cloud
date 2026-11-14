@@ -31,7 +31,10 @@ output "aws_region" {
   value = var.aws_region
 }
 
-output "api_node_ports" {
-  description = "NodePorts reachable only from inside the VPC for the API internal NLBs."
-  value       = var.api_node_ports
+output "billing_ecr_repository_url" {
+  value = module.billing_ecr.repository_url
+}
+
+output "inventory_ecr_repository_url" {
+  value = module.inventory_ecr.repository_url
 }
