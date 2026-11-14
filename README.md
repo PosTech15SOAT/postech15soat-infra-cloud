@@ -2,6 +2,8 @@
 
 # NumberOne Auto Service - Cloud Infrastructure
 
+[Arquitetura e entregáveis da Fase 4](docs/arquitetura-fase-4.md)
+
 Infraestrutura cloud compartilhada do Tech Challenge Fase 3 da FIAP para o
 projeto NumberOne.
 
