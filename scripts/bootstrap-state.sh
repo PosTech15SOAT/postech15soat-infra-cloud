@@ -28,7 +28,7 @@ fail() { printf 'ERRO: %s\n' "$*" >&2; exit 1; }
 info() { printf '%s\n' "$*"; }
 usage() {
   cat <<'HELP'
-Uso: bootstrap-state.sh [check|plan|apply|verify|init-backends] [opções]
+Uso: bootstrap-state.sh [check|bucket-status|plan|apply|verify|init-backends] [opções]
 Sem argumento: check local, sem chamadas AWS ou alterações em arquivos.
   --bootstrap-only         Verifica somente o Cloud/bootstrap; não exige checkout Database.
   --aws                    Autoriza consultas AWS; necessário para os demais modos.
@@ -61,7 +61,7 @@ while (($#)); do
     *) fail "Opção desconhecida: $1. Use --help." ;;
   esac
 done
-case $mode in check|plan|apply|verify|init-backends) ;; *) fail "Modo desconhecido: $mode. Use --help." ;; esac
+case $mode in check|bucket-status|plan|apply|verify|init-backends) ;; *) fail "Modo desconhecido: $mode. Use --help." ;; esac
 [[ $mode != init-backends || $bootstrap_only == false ]] || fail '--bootstrap-only não pode inicializar os backends. Disponibilize o Database e execute a verificação completa.'
 [[ $state_name =~ ^[a-zA-Z0-9_-]+\.tfstate$ ]] || fail '--state deve ser um nome simples terminado em .tfstate, dentro de infra/bootstrap.'
 state_file="$bootstrap_dir/$state_name"
@@ -405,6 +405,24 @@ init_backends() {
   done
   info "Backends inicializados sem migração. Para operações Database: export TF_VAR_cloud_state_bucket=$bucket"
 }
+
+# CI uses the same identity, owner and region checks as bootstrap. A generic
+# HeadBucket 404 is not enough to skip a plan: require NoSuchBucket explicitly.
+if [[ $mode == bucket-status ]]; then
+  require_dependencies
+  confirm_identity
+  inspect_bucket
+  if [[ $bucket_exists == true ]]; then
+    info 'bucket_status=present'
+  else
+    if result=$(aws_read s3api get-bucket-location --bucket "$bucket" --expected-bucket-owner "$account" --output json 2>&1); then
+      fail 'HeadBucket indicou ausência, mas GetBucketLocation respondeu com sucesso. Investigue a inconsistência.'
+    fi
+    [[ $result == *"An error occurred (NoSuchBucket) when calling the GetBucketLocation operation:"* ]] || fail 'Ausência do bucket não comprovada; GetBucketLocation retornou erro inconclusivo ou acesso negado.'
+    info 'bucket_status=missing'
+  fi
+  exit 0
+fi
 
 # Missing plan/approval is rejected before any AWS request.
 if [[ $mode == apply ]]; then
