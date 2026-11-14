@@ -123,10 +123,20 @@ sessão do laboratório termina e precisam ser renovadas nos Secrets do GitHub.
 
 ### Bootstrap do backend
 
-O bucket compartilhado `numberone-terraform-state` é preparado em
-[`infra/bootstrap`](infra/bootstrap). Veja o [procedimento de bootstrap](docs/bootstrap-state.md)
-para identificar a conta, revisar o plano e inicializar os dois backends. O state
-local do bootstrap e o plano são sensíveis e devem ser preservados com segurança.
+O bucket compartilhado `numberone-terraform-state` é criado localmente em
+[`infra/bootstrap`](infra/bootstrap), na região `us-east-1`. Confirme a identidade
+da conta Academy e a região antes de executar:
+
+```bash
+cd infra/bootstrap
+terraform init
+terraform plan -var="state_bucket_name=numberone-terraform-state"
+terraform apply -var="state_bucket_name=numberone-terraform-state"
+```
+
+Revise o plano antes do apply. O state do bootstrap é local: preserve-o com
+segurança e não o versione. Configure `TF_STATE_BUCKET=numberone-terraform-state`
+na organização GitHub antes de inicializar os backends Cloud e Database.
 
 ### Configuração principal
 
