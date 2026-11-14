@@ -26,7 +26,19 @@ module "eks" {
 module "ecr" {
   source = "./modules/ecr"
 
-  repository_name = "${var.project_name}-auto-service-api"
+  repository_name = "numberone-os"
+}
+
+module "billing_ecr" {
+  source = "./modules/ecr"
+
+  repository_name = "numberone-billing"
+}
+
+module "inventory_ecr" {
+  source = "./modules/ecr"
+
+  repository_name = "numberone-inventory"
 }
 
 module "observability" {
@@ -37,21 +49,4 @@ module "observability" {
   datadog_site    = var.datadog_site
 
   depends_on = [module.eks]
-}
-
-resource "aws_vpc_security_group_ingress_rule" "api_internal_nlb" {
-  for_each = {
-    for port in var.api_node_ports : tostring(port) => port
-  }
-
-  security_group_id = module.eks.cluster_security_group_id
-  description       = "Allow private VPC traffic to the API NodePort"
-  cidr_ipv4         = var.vpc_cidr
-  from_port         = each.value
-  to_port           = each.value
-  ip_protocol       = "tcp"
-
-  tags = {
-    Name = "${local.name_prefix}-api-internal-nlb-${each.value}"
-  }
 }

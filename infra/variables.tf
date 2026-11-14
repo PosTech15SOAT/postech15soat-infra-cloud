@@ -64,7 +64,7 @@ variable "node_role_name" {
 
 variable "node_instance_types" {
   type    = list(string)
-  default = ["t3.small"]
+  default = ["t3.medium"]
 }
 
 variable "node_desired_size" {
@@ -91,17 +91,6 @@ variable "endpoint_public_access_cidrs" {
   description = "CIDRs allowed to reach the public EKS API. Restrict when possible."
   type        = list(string)
   default     = ["0.0.0.0/0"]
-}
-
-variable "api_node_ports" {
-  description = "NodePorts reserved for the API internal NLBs."
-  type        = set(number)
-  default     = [30081]
-
-  validation {
-    condition     = alltrue([for port in var.api_node_ports : port >= 30000 && port <= 32767])
-    error_message = "Every api_node_ports value must be within the Kubernetes NodePort range."
-  }
 }
 
 variable "datadog_api_key" {

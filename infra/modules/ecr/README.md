@@ -1,6 +1,6 @@
 # Módulo ECR
 
-Provisiona o repositório de imagens da API `numberone-auto-service-api`.
+Provisiona um repositório ECR; a configuração Cloud cria `numberone-os`, `numberone-billing` e `numberone-inventory`.
 
 ## Recursos
 

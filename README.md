@@ -1,3 +1,5 @@
+> Fase 4: consulte [o procedimento atualizado](docs/phase4.md). Trechos anteriores podem descrever a Fase 3.
+
 # NumberOne Auto Service - Cloud Infrastructure
 
 Infraestrutura cloud compartilhada do Tech Challenge Fase 3 da FIAP para o
@@ -121,24 +123,10 @@ sessão do laboratório termina e precisam ser renovadas nos Secrets do GitHub.
 
 ### Bootstrap do backend
 
-O backend remoto é criado uma única vez pelo Terraform em
-[`infra/bootstrap`](infra/bootstrap). O bucket S3 possui:
-
-- versionamento habilitado;
-- criptografia SSE-S3 (`AES256`);
-- bloqueio de acesso público;
-- `prevent_destroy = true`.
-
-O estado do próprio bootstrap permanece local. Guarde-o com segurança ou importe
-o bucket se outra pessoa precisar administrar esse recurso.
-
-```bash
-cd infra/bootstrap
-cp terraform.tfvars.example terraform.tfvars
-terraform init
-terraform plan
-terraform apply
-```
+O bucket compartilhado `numberone-terraform-state` é preparado em
+[`infra/bootstrap`](infra/bootstrap). Veja o [procedimento de bootstrap](docs/bootstrap-state.md)
+para identificar a conta, revisar o plano e inicializar os dois backends. O state
+local do bootstrap e o plano são sensíveis e devem ser preservados com segurança.
 
 ### Configuração principal
 
@@ -146,7 +134,7 @@ terraform apply
 cd infra
 cp terraform.tfvars.example terraform.tfvars
 terraform init \
-  -backend-config="bucket=SEU_BUCKET_DE_ESTADO" \
+  -backend-config="bucket=numberone-terraform-state" \
   -backend-config="region=us-east-1"
 ```
 
