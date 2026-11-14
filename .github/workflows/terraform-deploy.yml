@@ -111,7 +111,7 @@ jobs:
         run: terraform plan -destroy -input=false -out=tfplan
 
       - name: Apply
-        if: github.event_name == 'workflow_dispatch' && github.ref_name == 'main' && github.event.inputs.action == 'apply' && github.event.inputs.confirm_apply == 'APPLY'
+        if: github.ref_name == 'main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' && github.event.inputs.confirm_apply == 'APPLY'))
         run: terraform apply -input=false -auto-approve tfplan
 
       - name: Destroy
