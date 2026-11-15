@@ -22,7 +22,7 @@ Os nomes ECR e namespaces são fixados nos workflows: `numberone-os`, `numberone
 4. No Database, execute o workflow de plan e revise; dispare manualmente apply em main com `APPLY`. O apply gera e aplica seu próprio plano sem pausa para revisão; para aprovação independente, implemente uma etapa protegida por governança antes de executar. SQL e versões dos secrets são preparados conforme `docs/phase4.md` no Database.
 5. Configure ARNs completos dos secrets por repositório e acesso de deploy a ECR, EKS, RDS Describe, Secrets Manager GetSecretValue e KMS quando aplicável. A identidade precisa de autorização Kubernetes; valide o acesso EKS na conta nova. Deploy manual de cada serviço, conferir Flyway, rollout e health.
 
-A base inclui VPC, subnets, EKS, node group, três ECRs, RDS privado e containers de secrets. Para ativar a entrada HTTP, siga [o procedimento do bloco 1B](gateway-fase4.md). SQS `numberone-billing-events`, DLQ `numberone-billing-events-dlq` e DynamoDB são posteriores; mantenha workers desabilitados. Os perfis Spring e diretórios de overlay chamados homologation não são GitHub Environments.
+A base inclui VPC, subnets, EKS, node group, três ECRs, RDS privado e containers de secrets. Para ativar a entrada HTTP, siga o [procedimento do bloco 1B](gateway-fase4.md). Para provisionar SQS e habilitar os workers após validar as permissões dos Pods, siga o [procedimento do bloco 2A](sqs-billing-fase4.md). A projeção em DynamoDB segue no bloco 2B. Os perfis Spring e diretórios de overlay chamados homologation não são GitHub Environments.
 
 A chave Datadog é sensível, mas o provider Helm pode armazená-la no state Terraform. Restrinja rigorosamente acesso ao bucket e às versões do state.
 
