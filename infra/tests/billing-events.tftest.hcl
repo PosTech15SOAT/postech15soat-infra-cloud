@@ -7,7 +7,6 @@ mock_provider "aws" {
 
   mock_resource "aws_eks_cluster" {
     defaults = {
-      arn                   = "arn:aws:eks:us-east-1:123456789012:cluster/numberone-eks"
       certificate_authority = [{ data = "bW9jay1jYQ==" }]
     }
   }
@@ -50,7 +49,7 @@ run "queues_are_available_without_workload_identity_permissions" {
     condition = (
       length(aws_eks_addon.pod_identity) == 0 &&
       length(aws_eks_pod_identity_association.billing_events_workload) == 0 &&
-      length(aws_iam_role.billing_events_workload) == 0
+      length(data.aws_iam_role.billing_events_workload) == 0
     )
     error_message = "The queue rollout must be independent of IAM and Pod Identity provisioning."
   }
@@ -77,64 +76,55 @@ run "queues_are_available_without_workload_identity_permissions" {
   }
 }
 
-run "pod_identity_uses_distinct_service_accounts_and_only_the_main_queue" {
+run "pod_identity_associates_two_existing_roles" {
   command = apply
 
   variables {
-    billing_events_pod_identity_enabled = true
-  }
-
-  override_resource {
-    target = aws_iam_role.billing_events_workload["numberone-billing"]
-    values = {
-      arn = "arn:aws:iam::123456789012:role/numberone-eks-numberone-billing-sqs"
+    billing_events_workload_role_names = {
+      billing = "existing-billing"
+      os      = "existing-os"
     }
   }
 
-  override_resource {
-    target = aws_iam_role.billing_events_workload["numberone-os"]
+  override_data {
+    target = data.aws_iam_role.billing_events_workload["numberone-billing"]
     values = {
-      arn = "arn:aws:iam::123456789012:role/numberone-eks-numberone-os-sqs"
+      arn = "arn:aws:iam::123456789012:role/workloads/existing-billing"
+    }
+  }
+
+  override_data {
+    target = data.aws_iam_role.billing_events_workload["numberone-os"]
+    values = {
+      arn = "arn:aws:iam::123456789012:role/workloads/existing-os"
     }
   }
 
   assert {
     condition = (
       length(aws_eks_addon.pod_identity) == 1 &&
-      length(toset([for role in aws_iam_role.billing_events_workload : role.name])) == 2 &&
+      data.aws_iam_role.billing_events_workload["numberone-billing"].name == "existing-billing" &&
+      data.aws_iam_role.billing_events_workload["numberone-os"].name == "existing-os" &&
+      length(toset([for association in aws_eks_pod_identity_association.billing_events_workload : association.role_arn])) == 2 &&
       alltrue([
         for workload, association in aws_eks_pod_identity_association.billing_events_workload :
         association.namespace == workload && association.service_account == workload &&
-        association.role_arn == aws_iam_role.billing_events_workload[workload].arn
+        association.role_arn == data.aws_iam_role.billing_events_workload[workload].arn
       ])
     )
     error_message = "Billing and OS must use distinct roles associated with their existing ServiceAccounts."
   }
+}
 
-  assert {
-    condition = (
-      toset(jsondecode(aws_iam_role_policy.billing_events_workload["numberone-billing"].policy).Statement[0].Action) == toset(["sqs:SendMessage"]) &&
-      toset(jsondecode(aws_iam_role_policy.billing_events_workload["numberone-os"].policy).Statement[0].Action) == toset([
-        "sqs:GetQueueAttributes", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:ChangeMessageVisibility"
-      ]) &&
-      alltrue([
-        for policy in aws_iam_role_policy.billing_events_workload :
-        jsondecode(policy.policy).Statement[0].Resource == output.billing_events_queue_arn
-      ])
-    )
-    error_message = "Workload roles must have only the contracted SQS actions on the main queue."
+run "pod_identity_rejects_a_shared_role" {
+  command = plan
+
+  variables {
+    billing_events_workload_role_names = {
+      billing = "shared-role"
+      os      = "Shared-Role"
+    }
   }
 
-  assert {
-    condition = alltrue([
-      for workload, role in aws_iam_role.billing_events_workload :
-      jsondecode(role.assume_role_policy).Statement[0].Principal.Service == "pods.eks.amazonaws.com" &&
-      jsondecode(role.assume_role_policy).Statement[0].Condition.StringEquals == {
-        "aws:RequestTag/eks-cluster-arn"            = module.eks.cluster_arn
-        "aws:RequestTag/kubernetes-namespace"       = workload
-        "aws:RequestTag/kubernetes-service-account" = workload
-      }
-    ])
-    error_message = "Each trust policy must restrict the EKS cluster, namespace and ServiceAccount."
-  }
+  expect_failures = [var.billing_events_workload_role_names]
 }
