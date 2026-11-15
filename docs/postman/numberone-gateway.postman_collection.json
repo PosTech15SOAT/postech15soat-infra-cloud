@@ -1,0 +1,1310 @@
+{
+  "info": {
+    "name": "NumberOne | Aceite do Gateway 1B",
+    "description": "Use a URL HTTPS do output http_api_url. Execute as pastas conforme o modo implantado. Forneça tokens e IDs de massa sintética no ambiente local do Postman. Ative o webhook de teste no Billing antes do teste de assinatura.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://lclrtr533m.execute-api.us-east-1.amazonaws.com"
+    },
+    {
+      "key": "operatorToken",
+      "value": ""
+    },
+    {
+      "key": "customerToken",
+      "value": ""
+    },
+    {
+      "key": "invalidToken",
+      "value": "invalid.jwt.signature"
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    },
+    {
+      "key": "budgetId",
+      "value": ""
+    },
+    {
+      "key": "itemId",
+      "value": ""
+    },
+    {
+      "key": "customerId",
+      "value": ""
+    },
+    {
+      "key": "otherOrderId",
+      "value": ""
+    },
+    {
+      "key": "otherSubject",
+      "value": ""
+    },
+    {
+      "key": "otherCustomerId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Primeira rota e isolamento",
+      "item": [
+        {
+          "name": "Decisão com token sintético inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"O Billing respondeu com HTML sem cache\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/html\");",
+                  "    pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"no-store\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/orcamentos-ordem-servico/decisao?token=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "orcamentos-ordem-servico",
+                "decisao"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Método fora da matriz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"O API Gateway encerrou a chamada\", () => pm.expect(pm.response.json().message).to.eql(\"Not Found\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/orcamentos-ordem-servico/decisao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "orcamentos-ordem-servico",
+                "decisao"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consulta de identidade interna",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"O API Gateway encerrou a chamada\", () => pm.expect(pm.response.json().message).to.eql(\"Not Found\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/internal/auth/customer-identity",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internal",
+                "auth",
+                "customer-identity"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Liquidação interna",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"O API Gateway encerrou a chamada\", () => pm.expect(pm.response.json().message).to.eql(\"Not Found\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/internal/payments/service-orders/11111111-1111-4111-8111-111111111111/settlement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internal",
+                "payments",
+                "service-orders",
+                "11111111-1111-4111-8111-111111111111",
+                "settlement"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actuator administrativo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"O API Gateway encerrou a chamada\", () => pm.expect(pm.response.json().message).to.eql(\"Not Found\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/env",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "env"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Caminho raiz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"O API Gateway encerrou a chamada\", () => pm.expect(pm.response.json().message).to.eql(\"Not Found\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rotas públicas do Billing",
+      "item": [
+        {
+          "name": "Formulário com token sintético inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"O Billing respondeu com HTML sem cache\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/html\");",
+                  "    pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"no-store\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/orcamentos-ordem-servico/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "orcamentos-ordem-servico",
+                "aprovar"
+              ]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "token",
+                  "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                },
+                {
+                  "key": "confirmacao",
+                  "value": "sim"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook com assinatura inválida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"O Billing rejeitou a assinatura\", () => {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().codigo).to.eql(\"NOTIFICACAO_NAO_AUTENTICADA\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "X-Signature",
+                "value": "ts=1234567890,v1=0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/pagamentos/notificacoes/mercado-pago?data.id=123456789",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "pagamentos",
+                "notificacoes",
+                "mercado-pago"
+              ],
+              "query": [
+                {
+                  "key": "data.id",
+                  "value": "123456789"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"action\":\"order.processed\",\"type\":\"order\",\"data\":{\"id\":\"123456789\"}}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "JWT e dados sintéticos",
+      "item": [
+        {
+          "name": "OS com operador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ID da massa sintética\", () => pm.expect(pm.response.json().id).to.eql(pm.variables.get(\"orderId\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{operatorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/ordens-servico/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "ordens-servico",
+                "{{orderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "OS sem token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/ordens-servico/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "ordens-servico",
+                "{{orderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "OS com token inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/ordens-servico/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "ordens-servico",
+                "{{orderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "OS com JWT de cliente e papel forjado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/ordens-servico/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "ordens-servico",
+                "{{orderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Billing com operador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ID da massa sintética\", () => pm.expect(pm.response.json().id).to.eql(pm.variables.get(\"budgetId\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{operatorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orcamentos-ordem-servico/{{budgetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orcamentos-ordem-servico",
+                "{{budgetId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Billing sem token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orcamentos-ordem-servico/{{budgetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orcamentos-ordem-servico",
+                "{{budgetId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Billing com token inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orcamentos-ordem-servico/{{budgetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orcamentos-ordem-servico",
+                "{{budgetId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Billing com JWT de cliente e papel forjado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orcamentos-ordem-servico/{{budgetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orcamentos-ordem-servico",
+                "{{budgetId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inventory com operador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ID da massa sintética\", () => pm.expect(pm.response.json().id).to.eql(pm.variables.get(\"itemId\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{operatorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/itens/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "itens",
+                "{{itemId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inventory sem token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/itens/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "itens",
+                "{{itemId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inventory com token inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/itens/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "itens",
+                "{{itemId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inventory com JWT de cliente e papel forjado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/itens/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "itens",
+                "{{itemId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Operador confirma que a OS alheia existe",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ID da massa sintética\", () => pm.expect(pm.response.json().id).to.eql(pm.variables.get(\"otherOrderId\")));",
+                  "pm.test(\"Titularidade da OS\", () => pm.expect(pm.response.json().idCliente).to.eql(pm.variables.get(\"otherCustomerId\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{operatorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/ordens-servico/{{otherOrderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "ordens-servico",
+                "{{otherOrderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cliente encontra a própria OS mesmo com identidade forjada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ID da massa sintética\", () => pm.expect(pm.response.json().id).to.eql(pm.variables.get(\"orderId\")));",
+                  "pm.test(\"Titularidade da OS\", () => pm.expect(pm.response.json().idCliente).to.eql(pm.variables.get(\"customerId\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/ordens-servico/{{orderId}}/acompanhamento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "ordens-servico",
+                "{{orderId}}",
+                "acompanhamento"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cliente não se torna titular de outra OS por cabeçalho forjado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "x-authenticated-subject",
+                "value": "{{otherSubject}}"
+              },
+              {
+                "key": "X-Authenticated-Customer-Id",
+                "value": "{{otherCustomerId}}"
+              },
+              {
+                "key": "x-authenticated-status",
+                "value": "ACTIVE"
+              },
+              {
+                "key": "X-Authenticated-Roles",
+                "value": "ADMIN"
+              },
+              {
+                "key": "x-authenticated-permissions",
+                "value": "ADMIN_ACCESS,SERVICE_ORDER_TRACK_OWN"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/ordens-servico/{{otherOrderId}}/acompanhamento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "ordens-servico",
+                "{{otherOrderId}}",
+                "acompanhamento"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
