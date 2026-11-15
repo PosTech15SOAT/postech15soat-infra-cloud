@@ -1,0 +1,5 @@
+apiVersion: v2
+name: gateway-proxy
+description: HTTP routing from the internal NumberOne NLB to EKS ClusterIP services
+type: application
+version: 0.1.0

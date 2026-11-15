@@ -70,3 +70,7 @@ jobs:
       - name: Validate cloud configuration
         working-directory: infra
         run: terraform validate
+
+      - name: Test Gateway route configuration
+        working-directory: infra
+        run: terraform test
