@@ -63,6 +63,7 @@ jobs:
       TF_VAR_auth_lambda_arns: ${{ vars.AUTH_LAMBDA_ARNS || 'null' }}
       TF_VAR_private_gateway_routes: ${{ vars.PRIVATE_GATEWAY_ROUTES || 'disabled' }}
       TF_VAR_billing_events_workload_role_names: ${{ vars.BILLING_EVENTS_WORKLOAD_ROLE_NAMES || 'null' }}
+      TF_VAR_billing_events_bridge_role_name: ${{ vars.BILLING_EVENTS_BRIDGE_ROLE_NAME || '' }}
       TF_IN_AUTOMATION: "true"
 
     steps:

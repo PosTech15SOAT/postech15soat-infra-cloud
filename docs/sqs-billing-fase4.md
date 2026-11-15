@@ -2,6 +2,22 @@
 
 A Cloud cria `numberone-billing-events` e `numberone-billing-events-dlq` no mesmo state do EKS. As duas filas Standard usam SSE-SQS, polling de 20 s e visibilidade de 60 s. A principal retém mensagens por 4 dias. A DLQ retém por 14 dias, aceita apenas a fila principal como origem e recebe mensagens após cinco recebimentos sem ACK. [Contrato de filas](https://github.com/PosTech15SOAT/numberone-service-order/blob/main/doc/contracts/saga/v2/queues.md)
 
+## Ponte HTTP na Academy
+
+A variável `BILLING_EVENTS_BRIDGE_ROLE_NAME=LabRole` do workflow Cloud habilita uma HTTP API e uma Lambda com a role existente. O output `billing_events_bridge_url` alimenta `BILLING_SQS_BRIDGE_URL` da OS e `SQS_BRIDGE_URL` do Billing. O deploy do Billing seleciona o transporte HTTP quando essa URL está preenchida.
+
+As rotas exigem JWT assinado pelo EKS com audiência `numberone-billing-sqs-bridge`. Os overlays de deploy projetam o token do ServiceAccount em `/var/run/secrets/numberone-sqs/token` e o kubelet o renova. A Lambda usa o `sub` autenticado pelo Gateway para autorizar a operação. A fila de destino vem do Terraform. O SQS registra a `LabRole` como principal e a autorização por ServiceAccount ocorre na ponte. [Autorização JWT no API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-jwt-authorizer.html)
+
+| Operação | ServiceAccount | Resposta de sucesso |
+| --- | --- | --- |
+| `POST /eventos` com envelope no corpo | Billing | 201 após `SendMessage` |
+| `GET /fila` | OS | 200 com os atributos da fila |
+| `POST /recebimentos` | OS | 200 com lista de até uma mensagem, incluindo `messageId`, `receiptHandle`, `body` e `receiveCount` |
+| `POST /confirmacoes` com `receiptHandle` | OS | 204 após `DeleteMessage` |
+| `POST /visibilidade` com `receiptHandle` | OS | 204 após extensão para 60 s |
+
+Com os workers desligados, valide uma chamada sem JWT e uma chamada de cada ServiceAccount a uma operação reservada ao outro. Os resultados esperados são 401 e 403. Em uma fila vazia, publique um envelope sintético a partir do Billing. A partir da OS, confira atributos, receba, renove a visibilidade e confirme a mesma mensagem. Ative primeiro a OS em modo `dedicated`. Confira o startup e as pendências de publicação antes de ativar o Billing. Use os passos de homologação abaixo para documentar a aprovação, a reentrega e a DLQ.
+
 ## Identidades e implantação
 
 1. Aplique a Cloud e confira os outputs `billing_events_queue_url`, `billing_events_queue_arn`, `billing_events_dlq_url` e `billing_events_dlq_arn`. Use `GetQueueAttributes` para conferir retenção, visibilidade, polling, criptografia e políticas de encaminhamento.

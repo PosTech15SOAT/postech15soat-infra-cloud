@@ -8,6 +8,7 @@ mock_provider "aws" {
   mock_resource "aws_eks_cluster" {
     defaults = {
       certificate_authority = [{ data = "bW9jay1jYQ==" }]
+      identity              = [{ oidc = [{ issuer = "https://issuer.example.test" }] }]
     }
   }
 
@@ -19,6 +20,7 @@ mock_provider "aws" {
 }
 
 mock_provider "helm" {}
+mock_provider "archive" {}
 
 variables {
   cluster_role_name = "eks-cluster"
@@ -127,4 +129,26 @@ run "pod_identity_rejects_a_shared_role" {
   }
 
   expect_failures = [var.billing_events_workload_role_names]
+}
+
+run "bridge_exposes_only_explicit_jwt_routes_with_an_existing_role" {
+  command = plan
+
+  variables {
+    billing_events_bridge_role_name = "existing-lambda-role"
+  }
+
+  assert {
+    condition = (
+      aws_lambda_function.billing_events_bridge[0].handler == "bridge.handler" &&
+      data.aws_iam_role.billing_events_bridge[0].name == "existing-lambda-role" &&
+      length(aws_apigatewayv2_authorizer.billing_events_bridge) == 1 &&
+      one(aws_apigatewayv2_authorizer.billing_events_bridge[0].jwt_configuration).audience == toset(["numberone-billing-sqs-bridge"]) &&
+      toset(keys(aws_apigatewayv2_route.billing_events_bridge)) == toset([
+        "POST /eventos", "GET /fila", "POST /recebimentos", "POST /confirmacoes", "POST /visibilidade"
+      ]) &&
+      alltrue([for route in aws_apigatewayv2_route.billing_events_bridge : route.authorization_type == "JWT"])
+    )
+    error_message = "Use an existing role and require JWT on every supported bridge operation."
+  }
 }
