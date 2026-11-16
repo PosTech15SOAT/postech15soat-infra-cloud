@@ -74,6 +74,27 @@ run "full_matrix_requires_auth" {
   expect_failures = [aws_apigatewayv2_integration.private["protected"]]
 }
 
+run "private_identity_does_not_publish_a_gateway_route" {
+  command = plan
+  variables {
+    private_gateway_routes      = "public"
+    os_identity_ingress_enabled = true
+  }
+
+  assert {
+    condition = (
+      aws_lb_listener.os_identity[0].port == 443 &&
+      aws_lb_listener.os_identity[0].protocol == "TCP" &&
+      aws_lb_target_group.os_identity[0].port == 18443 &&
+      length(helm_release.os_identity_proxy) == 1 &&
+      length(aws_apigatewayv2_route.public) == 4 &&
+      length(aws_apigatewayv2_route.protected) == 0 &&
+      alltrue([for route in keys(local.proxy_routes) : !strcontains(route, "/internal/")])
+    )
+    error_message = "The private identity path must use its own TLS listener without adding a public route."
+  }
+}
+
 run "full_matrix_is_explicit_and_protected" {
   command = plan
   variables {
