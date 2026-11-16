@@ -1,5 +1,5 @@
 variable "billing_events_workload_role_names" {
-  description = "Existing IAM role names for the Billing producer and OS consumer. Null leaves Pod Identity disabled."
+  description = "Existing IAM role names for the Billing producer and OS consumer. Null leaves both associations disabled."
   type = object({
     billing = string
     os      = string
@@ -29,9 +29,12 @@ data "aws_iam_role" "billing_events_workload" {
   name = each.value
 }
 
-resource "aws_eks_addon" "pod_identity" {
-  count = var.billing_events_workload_role_names == null ? 0 : 1
+moved {
+  from = aws_eks_addon.pod_identity[0]
+  to   = aws_eks_addon.pod_identity_agent
+}
 
+resource "aws_eks_addon" "pod_identity_agent" {
   cluster_name = module.eks.cluster_name
   addon_name   = "eks-pod-identity-agent"
 }
@@ -44,5 +47,5 @@ resource "aws_eks_pod_identity_association" "billing_events_workload" {
   service_account = each.key
   role_arn        = each.value.arn
 
-  depends_on = [aws_eks_addon.pod_identity]
+  depends_on = [aws_eks_addon.pod_identity_agent]
 }
