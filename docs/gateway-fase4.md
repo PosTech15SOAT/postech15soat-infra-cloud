@@ -17,3 +17,11 @@ O SG do NLB aceita TCP/80 exclusivamente do SG das ENIs do VPC Link. O NLB alcan
 O proxy preserva método, query e corpo. O mapping `overwrite:path` encaminha o caminho da rota sem o prefixo do stage. O contexto do Authorizer sobrescreve os cinco cabeçalhos de identidade do contrato. Nas rotas públicas, o Billing recebe apenas os cabeçalhos de aplicação permitidos, inclusive `X-Correlation-Id`, `Idempotency-Key`, `X-Request-Id` e `X-Signature`. As duas validações públicas são feitas pelo Billing. Logs de acesso do Gateway e do proxy guardam identificadores, rota/método e códigos de resposta. A query, o corpo e as credenciais ficam fora do formato de log.
 
 Execute `terraform test` em `infra` para verificar a matriz, as integrações e a configuração de identidade com providers simulados. Os testes HTTPS e a verificação de isolamento são executados na conta Academy. [Coleção Postman](postman/numberone-gateway.postman_collection.json)
+
+## Origem HTTPS para a identidade da OS
+
+`OS_IDENTITY_INGRESS_ENABLED=true` adiciona um listener TCP 443 ao NLB interno. O TLS termina em um proxy dedicado no EKS. O listener aceita conexões apenas do security group `os_identity_ingress.client_security_group_id`, associado às Lambdas de Auth. O proxy encaminha somente `POST /internal/auth/customer-identity` e preserva o token de serviço e o ID de correlação.
+
+Antes de habilitar o listener, instale o Secret TLS `numberone-os-identity-tls` no namespace `numberone-gateway`. O certificado deve conter no SAN o DNS publicado em `os_identity_ingress.base_url`. A mesma CA deve constar em `ca_pem` no segredo de identidade do Auth. A chave privada fica no Secret Kubernetes.
+
+O listener privado pode ser preparado com `PRIVATE_GATEWAY_ROUTES=public`. O login e as demais rotas protegidas dependem da publicação das Lambdas e da promoção posterior para `full`.
