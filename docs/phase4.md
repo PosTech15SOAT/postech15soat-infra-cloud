@@ -18,10 +18,20 @@ Os nomes ECR e namespaces são fixados nos workflows: `numberone-os`, `numberone
 
 1. Verifique cotas, versão EKS, permissões da sessão, regiões/AZs, chaves Datadog e roles na nova conta. O endpoint público do EKS está aberto por padrão: restrinja `endpoint_public_access_cidrs` quando viável. O node group usa dois `t3.medium`: requests dos serviços somam 450m CPU e 1 GiB, além de componentes EKS e Datadog; valide capacidade efetiva, custos, limites e arquitetura na Academy. Não é garantia de capacidade em falhas.
 2. Siga o [procedimento de bootstrap do state](../README.md#bootstrap-do-backend), incluindo revisão e autorização antes do apply. Configure `TF_STATE_BUCKET` na organização e verifique eventuais sobrescritas nos repositórios.
-3. No Cloud, execute o workflow Terraform primeiro com `plan`; depois de revisar, dispare manualmente `apply` na main e digite `APPLY`. Push em main/develop apenas planeja. `destroy` requer main e `DESTROY`. Cada execução gera novo plano: essa execução aplica imediatamente o próprio plano, sem pausa para revisão e sem aplicar um artefato previamente aprovado. Para aprovação independente de plano, implemente uma etapa protegida por governança antes de executar.
+3. No Cloud, execute o workflow Terraform primeiro com `plan`; depois de revisar, dispare manualmente `apply` na main e digite `APPLY`. Push na main também planeja e aplica. Configure `PRIVATE_GATEWAY_ROUTES` com o modo ativo antes de promover a versão do 1B. `destroy` requer main e `DESTROY`. Cada execução de apply gera e aplica seu próprio plano.
 4. No Database, execute o workflow de plan e revise; dispare manualmente apply em main com `APPLY`. O apply gera e aplica seu próprio plano sem pausa para revisão; para aprovação independente, implemente uma etapa protegida por governança antes de executar. SQL e versões dos secrets são preparados conforme `docs/phase4.md` no Database.
 5. Configure ARNs completos dos secrets por repositório e acesso de deploy a ECR, EKS, RDS Describe, Secrets Manager GetSecretValue e KMS quando aplicável. A identidade precisa de autorização Kubernetes; valide o acesso EKS na conta nova. Deploy manual de cada serviço, conferir Flyway, rollout e health.
 
-O Terraform prepara VPC, subnets, EKS, node group, três ECRs, RDS privado e containers de secrets. Nenhum Gateway, Lambda Authorizer, VPC Link ou NLB é provisionado. Services são ClusterIP; conectividade externa e URL de aprovação dependem de validação separada com Marcelo. SQS `numberone-billing-events`, DLQ `numberone-billing-events-dlq` e DynamoDB são posteriores; mantenha workers desabilitados. Os perfis Spring e diretórios de overlay chamados homologation não são GitHub Environments.
+A base inclui VPC, subnets, EKS, node group, três ECRs, RDS privado e containers de secrets. Para ativar a entrada HTTP, siga o [procedimento do bloco 1B](gateway-fase4.md). Para provisionar SQS e habilitar os workers após validar as permissões dos Pods, siga o [procedimento do bloco 2A](sqs-billing-fase4.md). A projeção em DynamoDB segue no bloco 2B. Os perfis Spring e diretórios de overlay chamados homologation não são GitHub Environments.
 
 A chave Datadog é sensível, mas o provider Helm pode armazená-la no state Terraform. Restrinja rigorosamente acesso ao bucket e às versões do state.
+
+## Integração de Auth
+
+O state da Cloud é o único que gerencia permissões do API Gateway para invocar
+as Lambdas de Auth. A variável de Actions `AUTH_LAMBDA_ARNS` habilita a HTTP API,
+o stage `$default`, `POST /auth/login` e o Authorizer. O JSON contém
+`login`, `login_invoke`, `authorizer` e `authorizer_invoke`, obtidos dos
+[outputs da stack Auth](https://github.com/PosTech15SOAT/numberone-app-auth).
+
+O bloco 1B reutiliza essa API e o Authorizer. Consulte o [roteiro de publicação e aceite](gateway-fase4.md).

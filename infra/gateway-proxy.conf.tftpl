@@ -1,0 +1,55 @@
+upstream os {
+    server numberone-os-service.numberone-os.svc.cluster.local:8080;
+}
+upstream billing {
+    server numberone-billing-service.numberone-billing.svc.cluster.local:8080;
+}
+upstream inventory {
+    server numberone-inventory-service.numberone-inventory.svc.cluster.local:8080;
+}
+
+map "$request_method:$request_uri" $numberone_backend {
+    default "";
+%{ for pattern, service in routes ~}
+    "~^${pattern}(?:[?].*)?$" ${service};
+%{ endfor ~}
+}
+
+log_format gateway escape=json '{"gatewayRequestId":"$http_x_gateway_request_id",'
+    '"method":"$request_method","service":"$numberone_backend",'
+    '"status":$status,"upstreamStatus":"$upstream_status"}';
+
+server {
+    listen ${port};
+    client_max_body_size 10m;
+    access_log /dev/stdout gateway;
+    error_log /dev/stderr crit;
+    server_tokens off;
+
+%{ for cidr in vpc_link_subnets ~}
+    allow ${cidr};
+%{ endfor ~}
+    deny all;
+
+    proxy_http_version 1.1;
+    proxy_connect_timeout 5s;
+    proxy_read_timeout 28s;
+
+    # The public Billing endpoints consume their own application credentials.
+    location ~ "^/api/public/(orcamentos-ordem-servico|pagamentos)/" {
+        if ($numberone_backend = "") { return 404; }
+        proxy_pass_request_headers off;
+        proxy_set_header Content-Type $http_content_type;
+        proxy_set_header Accept $http_accept;
+        proxy_set_header X-Correlation-Id $http_x_correlation_id;
+        proxy_set_header Idempotency-Key $http_idempotency_key;
+        proxy_set_header X-Request-Id $http_x_request_id;
+        proxy_set_header X-Signature $http_x_signature;
+        proxy_pass http://$numberone_backend;
+    }
+
+    location / {
+        if ($numberone_backend = "") { return 404; }
+        proxy_pass http://$numberone_backend;
+    }
+}
