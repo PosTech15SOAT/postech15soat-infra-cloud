@@ -13,6 +13,8 @@ locals {
     "POST /recebimentos",
     "POST /confirmacoes",
     "POST /visibilidade",
+    "POST /historico",
+    "GET /historico",
   ]) : toset([])
 }
 
@@ -46,7 +48,8 @@ resource "aws_lambda_function" "billing_events_bridge" {
 
   environment {
     variables = {
-      QUEUE_URL = aws_sqs_queue.billing_events.url
+      QUEUE_URL          = aws_sqs_queue.billing_events.url
+      HISTORY_TABLE_NAME = "${var.project_name}-${var.environment}-vehicle-maintenance-history"
     }
   }
 

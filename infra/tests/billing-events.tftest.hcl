@@ -145,7 +145,8 @@ run "bridge_exposes_only_explicit_jwt_routes_with_an_existing_role" {
       length(aws_apigatewayv2_authorizer.billing_events_bridge) == 1 &&
       one(aws_apigatewayv2_authorizer.billing_events_bridge[0].jwt_configuration).audience == toset(["numberone-billing-sqs-bridge"]) &&
       toset(keys(aws_apigatewayv2_route.billing_events_bridge)) == toset([
-        "POST /eventos", "GET /fila", "POST /recebimentos", "POST /confirmacoes", "POST /visibilidade"
+        "POST /eventos", "GET /fila", "POST /recebimentos", "POST /confirmacoes", "POST /visibilidade",
+        "POST /historico", "GET /historico"
       ]) &&
       alltrue([for route in aws_apigatewayv2_route.billing_events_bridge : route.authorization_type == "JWT"])
     )

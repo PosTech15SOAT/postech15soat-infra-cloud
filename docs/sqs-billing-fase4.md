@@ -15,6 +15,14 @@ As rotas exigem JWT assinado pelo EKS com audiência `numberone-billing-sqs-brid
 | `POST /recebimentos` | OS | 200 com lista de até uma mensagem, incluindo `messageId`, `receiptHandle`, `body` e `receiveCount` |
 | `POST /confirmacoes` com `receiptHandle` | OS | 204 após `DeleteMessage` |
 | `POST /visibilidade` com `receiptHandle` | OS | 204 após extensão para 60 s |
+| `POST /historico` com snapshot da outbox | OS | 201 gravado, 200 repetido idempotente, 409 colisão de conteúdo |
+| `GET /historico?vehicleId=…&branchId=…&limit=…&after=…` | OS | 200 com revisões visíveis da filial e cursor `lastKey` |
+
+O histórico usa a tabela DynamoDB já criada no repositório Database. A Cloud configura a Lambda com o nome derivado `${project_name}-${environment}-vehicle-maintenance-history`; no ambiente `lab`, esse nome é `numberone-lab-vehicle-maintenance-history`. A Lambda fixa essa tabela e verifica novamente `sub=system:serviceaccount:numberone-os:numberone-os` antes de cada operação. O endpoint não aceita nome de tabela no corpo nem nos parâmetros. `POST /historico` usa `attribute_not_exists(vehicleId)`, compara o item existente em leitura consistente para reconhecer repetição idêntica e retorna colisão sem sobrescrever conteúdo diferente. `GET /historico` consulta pela partição `vehicleId`, filtra `branchId` e pagina por `historyKey` sem incluir no cursor revisões de outra filial.
+
+O ServiceAccount da OS deve projetar um token Kubernetes OIDC com audiência `numberone-billing-sqs-bridge` e enviar `Authorization: Bearer <token>` ao API Gateway. O token é validado pelo authorizer JWT; a Lambda confere o `sub` exato. O Deployment da OS mantém `automountServiceAccountToken=false`, então o token precisa ser montado explicitamente em volume projetado. A outbox e o estado da Saga permanecem no PostgreSQL.
+
+**Limite da conta Academy:** a Lambda usa a `LabRole` existente. A política dessa role é compartilhada e permite operações DynamoDB mais amplas do que o histórico. A validação do `sub` restringe a API da ponte à OS, mas não restringe por IAM outros workloads que usem a mesma role. Registre essa limitação como exceção de segurança na evidência; não descreva a role como menor privilégio.
 
 Com os workers desligados, valide uma chamada sem JWT e uma chamada de cada ServiceAccount a uma operação reservada ao outro. Os resultados esperados são 401 e 403. Em uma fila vazia, publique um envelope sintético a partir do Billing. A partir da OS, confira atributos, receba, renove a visibilidade e confirme a mesma mensagem. Ative primeiro a OS em modo `dedicated`. Confira o startup e as pendências de publicação antes de ativar o Billing. Use os passos de homologação abaixo para documentar a aprovação, a reentrega e a DLQ.
 
