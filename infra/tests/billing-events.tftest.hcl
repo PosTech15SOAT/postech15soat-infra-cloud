@@ -49,11 +49,11 @@ run "queues_are_available_without_workload_identity_permissions" {
 
   assert {
     condition = (
-      length(aws_eks_addon.pod_identity) == 0 &&
+      aws_eks_addon.pod_identity_agent.addon_name == "eks-pod-identity-agent" &&
       length(aws_eks_pod_identity_association.billing_events_workload) == 0 &&
       length(data.aws_iam_role.billing_events_workload) == 0
     )
-    error_message = "The queue rollout must be independent of IAM and Pod Identity provisioning."
+    error_message = "The queue and agent must be available without any workload role associations."
   }
 
   assert {
@@ -104,7 +104,7 @@ run "pod_identity_associates_two_existing_roles" {
 
   assert {
     condition = (
-      length(aws_eks_addon.pod_identity) == 1 &&
+      aws_eks_addon.pod_identity_agent.addon_name == "eks-pod-identity-agent" &&
       data.aws_iam_role.billing_events_workload["numberone-billing"].name == "existing-billing" &&
       data.aws_iam_role.billing_events_workload["numberone-os"].name == "existing-os" &&
       length(toset([for association in aws_eks_pod_identity_association.billing_events_workload : association.role_arn])) == 2 &&
