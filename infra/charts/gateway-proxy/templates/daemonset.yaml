@@ -52,9 +52,20 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+            {{- with .Values.tlsSecretName }}
+            - name: tls
+              mountPath: /etc/nginx/tls
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ .Release.Name }}
         - name: tmp
           emptyDir: {}
+        {{- with .Values.tlsSecretName }}
+        - name: tls
+          secret:
+            secretName: {{ . | quote }}
+            defaultMode: 0440
+        {{- end }}
