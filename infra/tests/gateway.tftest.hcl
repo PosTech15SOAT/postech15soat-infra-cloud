@@ -32,6 +32,7 @@ run "billing_probe_uses_one_private_integration" {
     condition = (
       length(aws_apigatewayv2_route.public) == 1 &&
       contains(keys(aws_apigatewayv2_route.public), "GET /api/public/orcamentos-ordem-servico/decisao") &&
+      !contains(keys(aws_apigatewayv2_route.public), "GET /css/budget.css") &&
       length(aws_apigatewayv2_route.protected) == 0 &&
       length(aws_apigatewayv2_route.login) == 0 &&
       aws_apigatewayv2_stage.default[0].name == "$default" &&
@@ -58,11 +59,15 @@ run "public_billing_mode" {
 
   assert {
     condition = (
-      length(aws_apigatewayv2_route.public) == 4 &&
+      length(aws_apigatewayv2_route.public) == 5 &&
       length(aws_apigatewayv2_route.protected) == 0 &&
-      contains(keys(aws_apigatewayv2_route.public), "POST /api/public/pagamentos/notificacoes/mercado-pago")
+      contains(keys(aws_apigatewayv2_route.public), "POST /api/public/pagamentos/notificacoes/mercado-pago") &&
+      contains(keys(aws_apigatewayv2_route.public), "GET /css/budget.css") &&
+      aws_apigatewayv2_route.public["GET /css/budget.css"].authorization_type == "NONE" &&
+      local.proxy_routes["GET /css/budget.css"] == "billing" &&
+      local.proxy_route_patterns["GET:/css/budget\\.css"] == "billing"
     )
-    error_message = "Public mode must publish the Billing validation endpoints and keep JWT routes closed."
+    error_message = "Public mode must publish Billing endpoints and budget CSS without JWT, keeping protected routes closed."
   }
 }
 
@@ -87,7 +92,10 @@ run "private_identity_does_not_publish_a_gateway_route" {
       aws_lb_listener.os_identity[0].protocol == "TCP" &&
       aws_lb_target_group.os_identity[0].port == 18443 &&
       length(helm_release.os_identity_proxy) == 1 &&
-      length(aws_apigatewayv2_route.public) == 4 &&
+      length(aws_apigatewayv2_route.public) == 5 &&
+      aws_apigatewayv2_route.public["GET /css/budget.css"].authorization_type == "NONE" &&
+      local.proxy_routes["GET /css/budget.css"] == "billing" &&
+      local.proxy_route_patterns["GET:/css/budget\\.css"] == "billing" &&
       length(aws_apigatewayv2_route.protected) == 0 &&
       alltrue([for route in keys(local.proxy_routes) : !strcontains(route, "/internal/")])
     )
@@ -110,7 +118,7 @@ run "full_matrix_is_explicit_and_protected" {
   assert {
     condition = (
       length(aws_apigatewayv2_route.protected) == 25 &&
-      length(aws_apigatewayv2_route.public) == 4 &&
+      length(aws_apigatewayv2_route.public) == 5 &&
       alltrue([for route in aws_apigatewayv2_route.protected : route.authorization_type == "CUSTOM"]) &&
       alltrue([
         for route in keys(local.proxy_routes) : length(regexall("(^ANY |[+*]|/internal/|/actuator)", route)) == 0
