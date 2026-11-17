@@ -120,6 +120,8 @@ resource "helm_release" "gateway_proxy" {
   atomic           = true
   max_history      = 3
 
+  depends_on = [module.eks]
+
   values = [yamlencode({
     port = local.gateway_proxy_port
     config = templatefile("${path.module}/gateway-proxy.conf.tftpl", {
