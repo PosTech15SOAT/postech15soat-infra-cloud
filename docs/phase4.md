@@ -29,9 +29,10 @@ A chave Datadog é sensível, mas o provider Helm pode armazená-la no state Ter
 ## Integração de Auth
 
 O state da Cloud é o único que gerencia permissões do API Gateway para invocar
-as Lambdas de Auth. A variável de Actions `AUTH_LAMBDA_ARNS` habilita a HTTP API,
-o stage `$default`, `POST /auth/login` e o Authorizer. O JSON contém
-`login`, `login_invoke`, `authorizer` e `authorizer_invoke`, obtidos dos
-[outputs da stack Auth](https://github.com/PosTech15SOAT/numberone-app-auth).
+as Lambdas de Auth. No modo `full`, o workflow Cloud lê automaticamente os quatro outputs do state
+`auth/prod/terraform.tfstate`, no mesmo bucket Cloud ou em `AUTH_STATE_BUCKET`.
+Os modos `probe` e `public` não dependem de Auth. Não é necessário configurar
+`AUTH_LAMBDA_ARNS`. Consulte os nomes dos outputs e a pendência do contrato HTTP
+no [roteiro de publicação](gateway-fase4.md).
 
 O bloco 1B reutiliza essa API e o Authorizer. Consulte o [roteiro de publicação e aceite](gateway-fase4.md).
