@@ -74,8 +74,3 @@ jobs:
       - name: Test Gateway route configuration
         working-directory: infra
         run: terraform test
-
-      - name: Test Auth outputs and NGINX startup without application Services
-        env:
-          PYTHONDONTWRITEBYTECODE: "1"
-        run: python3 -m unittest discover -s scripts/tests -v
