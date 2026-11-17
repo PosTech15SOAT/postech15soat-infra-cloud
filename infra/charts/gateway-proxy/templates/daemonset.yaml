@@ -24,6 +24,13 @@ spec:
       containers:
         - name: nginx
           image: nginxinc/nginx-unprivileged:1.28-alpine
+          # Use the Pod's DNS server without requiring any application Service at startup.
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              awk '/^nameserver / { printf "resolver %s valid=5s ipv6=off;\n", $2; exit }' /etc/resolv.conf > /tmp/nginx-resolver.conf
+              test -s /tmp/nginx-resolver.conf
+              exec /docker-entrypoint.sh nginx -g 'daemon off;'
           ports:
             - name: http
               containerPort: {{ .Values.port }}
@@ -52,20 +59,9 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
-            {{- with .Values.tlsSecretName }}
-            - name: tls
-              mountPath: /etc/nginx/tls
-              readOnly: true
-            {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ .Release.Name }}
         - name: tmp
           emptyDir: {}
-        {{- with .Values.tlsSecretName }}
-        - name: tls
-          secret:
-            secretName: {{ . | quote }}
-            defaultMode: 0440
-        {{- end }}

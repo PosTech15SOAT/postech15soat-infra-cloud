@@ -50,9 +50,9 @@ Responsabilidades entre repositórios:
 
 | Repositório | Responsabilidade |
 | --- | --- |
-| `postech15soat-infra-cloud` | VPC, networking, EKS, node group, ECR, observabilidade do Kubernetes e outputs de infraestrutura cloud |
+| `postech15soat-infra-cloud` | VPC, networking, EKS, node group, ECR, observabilidade, HTTP API, VPC Link, NLB interno e outputs de infraestrutura cloud |
 | `postech15soat-infra-database` | RDS PostgreSQL e infraestrutura específica do banco |
-| `numberone-app-auth` | Lambda Login, Lambda Authorizer, API Gateway, autenticação e consumo dos outputs de rede |
+| `numberone-app-auth` | Lambda Login, Lambda Authorizer, autenticação e consumo dos outputs de rede |
 | `numberone-app-auto-service-api` | aplicação Spring, manifests/deploy da aplicação, Service/NodePort, HPA, PDB e probes quando pertencentes ao workload |
 | `postech15soat-governance` | rulesets, branch protection e required checks |
 
@@ -60,15 +60,11 @@ Responsabilidades entre repositórios:
 
 ### NLB e conectividade privada
 
-Este state não cria recurso `aws_lb`/NLB. A parte existente neste repositório é
-a regra `aws_vpc_security_group_ingress_rule.api_internal_nlb`, que libera os
-`api_node_ports` apenas dentro do CIDR da VPC.
-
-Pela divisão de responsabilidades do projeto, o Service/NodePort e manifests do
-workload pertencem ao repositório `numberone-app-auto-service-api`, enquanto API
-Gateway, autenticação e VPC Link pertencem ao repositório `numberone-app-auth`.
-O NLB interno deve ser validado junto desses repositórios, sem duplicar recursos
-neste state.
+O state Cloud gerencia o NLB interno, VPC Link, HTTP API e proxies dedicados no
+EKS. As Lambdas Login e Authorizer pertencem ao Auth. O ingresso privado de
+identidade usa HTTP e SGs restritos; não publica `/internal/**` no Gateway.
+A sequência Cloud → Auth → Cloud e os modos `probe`, `public` e `full` estão no
+[roteiro da Fase 4](docs/gateway-fase4.md).
 
 ## 🧰 Tecnologias
 

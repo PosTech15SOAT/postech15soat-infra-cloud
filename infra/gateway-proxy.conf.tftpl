@@ -1,11 +1,16 @@
+include /tmp/nginx-resolver.conf;
+
 upstream os {
-    server numberone-os-service.numberone-os.svc.cluster.local:8080;
+    zone os 64k;
+    server numberone-os-service.numberone-os.svc.cluster.local:8080 resolve;
 }
 upstream billing {
-    server numberone-billing-service.numberone-billing.svc.cluster.local:8080;
+    zone billing 64k;
+    server numberone-billing-service.numberone-billing.svc.cluster.local:8080 resolve;
 }
 upstream inventory {
-    server numberone-inventory-service.numberone-inventory.svc.cluster.local:8080;
+    zone inventory 64k;
+    server numberone-inventory-service.numberone-inventory.svc.cluster.local:8080 resolve;
 }
 
 map "$request_method:$request_uri" $numberone_backend {
