@@ -1,5 +1,7 @@
 # Fase 4 — conta Academy nova
 
+O [guia rápido do Júlio](deploy-aws-academy-fase4.md) reúne a execução após reset, as validações e os incidentes do lab. A [documentação integrada](entrega-fase-4/README.md) descreve a arquitetura e as decisões da entrega.
+
 Este procedimento substitui as instruções operacionais da Fase 3. Não há dependência de recursos da conta anterior. Use apenas o fluxo revisado na conta nova.
 
 ## Configuração GitHub
@@ -32,7 +34,7 @@ O state da Cloud é o único que gerencia permissões do API Gateway para invoca
 as Lambdas de Auth. No modo `full`, o workflow Cloud lê automaticamente os quatro outputs do state
 `auth/prod/terraform.tfstate`, no mesmo bucket Cloud ou em `AUTH_STATE_BUCKET`.
 Os modos `probe` e `public` não dependem de Auth. Não é necessário configurar
-`AUTH_LAMBDA_ARNS`. Consulte os nomes dos outputs e a pendência do contrato HTTP
-no [roteiro de publicação](gateway-fase4.md).
+`AUTH_LAMBDA_ARNS`. Consulte os outputs e o contrato HTTP privado no
+[roteiro de publicação](gateway-fase4.md).
 
 O bloco 1B reutiliza essa API e o Authorizer. Consulte o [roteiro de publicação e aceite](gateway-fase4.md).
