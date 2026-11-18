@@ -1,5 +1,7 @@
 # Arquitetura distribuída — Fase 4
 
+Diagramas para a apresentação: [divisão dos microsserviços](diagram-fase4-dominios.md) e [entrada HTTP e segurança](diagram-fase4-entrada-seguranca.md).
+
 ## Limites dos serviços
 
 | Serviço | Responsabilidade | Persistência | Endereço interno |
