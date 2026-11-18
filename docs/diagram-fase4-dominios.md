@@ -9,7 +9,7 @@ flowchart LR
     Inventory[Inventory Service<br/>materiais, preços<br/>estoque e movimentações]
 
     OS <-->|REST interno| Billing
-    OS <-->|REST interno| Inventory
+    OS -->|REST interno| Inventory
     Billing -->|REST interno: preços| Inventory
     Billing -->|HTTP + JWT| Bridge[Lambda ponte HTTP]
     OS -->|HTTP + JWT| Bridge

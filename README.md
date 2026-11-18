@@ -321,6 +321,9 @@ entre states deve ser decidido explicitamente.
 
 ## 📚 Documentação
 
+- [Documentação integrada da Fase 4](docs/entrega-fase-4/README.md) · prévia da entrega, diagramas, RFCs e ADRs.
+- [Guia rápido de deploy AWS Academy do Júlio](docs/deploy-aws-academy-fase4.md) · implantação após reset e validação do ambiente.
+
 Arquivos de documentação existentes:
 
 - [`README.md`](README.md)

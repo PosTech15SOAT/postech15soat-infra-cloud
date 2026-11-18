@@ -9,12 +9,15 @@ flowchart LR
     Gateway -->|rota protegida:<br/>JWT e permissões| Authorizer[Lambda Authorizer]
     Gateway -->|integração privada| Link[VPC Link]
     Link --> NLB[NLB interno]
-    NLB --> Proxy[Proxy no EKS]
+    NLB -->|Listener 80| Proxy[Proxy no EKS]
+    Login -->|Identidade do cliente| IdentityIngress[HTTP privado 8081 + proxy dedicado]
+    Authorizer -->|Identidade do cliente| IdentityIngress
+    IdentityIngress --> OS
     Proxy --> OS[OS Service<br/>ClusterIP:8080]
     Proxy --> Billing[Billing Service<br/>ClusterIP:8080]
     Proxy --> Inventory[Inventory Service<br/>ClusterIP:8080]
     OS <-->|REST por DNS interno| Billing
-    OS <-->|REST por DNS interno| Inventory
+    OS -->|REST por DNS interno| Inventory
     Billing -->|REST por DNS interno| Inventory
 ```
 

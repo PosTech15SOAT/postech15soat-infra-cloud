@@ -1,6 +1,6 @@
 # Arquitetura distribuída — Fase 4
 
-Diagramas para a apresentação: [divisão dos microsserviços](diagram-fase4-dominios.md) e [entrada HTTP e segurança](diagram-fase4-entrada-seguranca.md).
+Para a apresentação, use os diagramas de [divisão dos microsserviços](diagram-fase4-dominios.md) e [entrada HTTP e segurança](diagram-fase4-entrada-seguranca.md). O [índice da entrega](entrega-fase-4/README.md) reúne os diagramas, RFCs, ADRs e o guia da AWS Academy.
 
 ## Limites dos serviços
 
@@ -9,31 +9,13 @@ Diagramas para a apresentação: [divisão dos microsserviços](diagram-fase4-do
 | [OS](https://github.com/PosTech15SOAT/numberone-service-order) | Clientes, veículos, ordens e orquestração da Saga | Database lógico `numberone_os` no PostgreSQL; histórico veicular projetado no DynamoDB | `http://numberone-os-service.numberone-os.svc.cluster.local:8080` |
 | [Billing](https://github.com/PosTech15SOAT/numberone-billing-service) | Orçamentos, aprovação, cobrança e eventos de pagamento | Database lógico `numberone_billing` no PostgreSQL | `http://numberone-billing-service.numberone-billing.svc.cluster.local:8080` |
 | [Inventory](https://github.com/PosTech15SOAT/numberone-inventory-service) | Catálogo, preços, consumo e reversão de estoque | Database lógico `numberone_inventory` no PostgreSQL | `http://numberone-inventory-service.numberone-inventory.svc.cluster.local:8080` |
+| [Auth](https://github.com/PosTech15SOAT/numberone-app-auth) | Login, JWT, perfis e autorização | Database lógico `numberone_auth`, com runtime de leitura | Lambdas consumidas pelo Gateway |
 
-Os três databases lógicos compartilham uma instância RDS por restrição do laboratório, com usuários e credenciais separados. Cada aplicação executa suas próprias migrations. Nenhum serviço deve consultar diretamente o database de outro. A tabela DynamoDB de histórico é declarada no [repositório Database](https://github.com/PosTech15SOAT/postech15soat-infra-database); a projeção pertence à OS.
+Os quatro bancos lógicos compartilham uma instância RDS, com usuários e credenciais separados. OS, Billing e Inventory executam o Flyway no próprio deploy. O workflow `Initialize PostgreSQL` prepara o esquema do Auth. A tabela DynamoDB de histórico é declarada no repositório Database, e a projeção pertence à OS. [Configuração do Database](https://github.com/PosTech15SOAT/postech15soat-infra-database/blob/main/docs/phase4.md)
 
 ## Comunicação
 
-```mermaid
-flowchart LR
-    Client[Cliente] --> Gateway[API Gateway HTTP API]
-    Gateway --> Auth[Lambda Authorizer]
-    Gateway --> Link[VPC Link / NLB / proxy]
-    Link --> OS[OS Service]
-    Link --> Billing[Billing Service]
-    Link --> Inventory[Inventory Service]
-    OS <-->|REST / ClusterIP| Billing
-    OS <-->|REST / ClusterIP| Inventory
-    Billing -->|REST / ClusterIP| Inventory
-    Billing -->|HTTP + JWT| Bridge[Lambda ponte HTTP]
-    Bridge <-->|publicar / receber / confirmar| SQS[SQS Billing events]
-    SQS --> DLQ[DLQ após 5 recebimentos]
-    OS -->|HTTP + JWT: receber/confirmar| Bridge
-    Bridge --> History[DynamoDB histórico]
-    OS --> OSDB[(PostgreSQL OS)]
-    Billing --> BillingDB[(PostgreSQL Billing)]
-    Inventory --> InventoryDB[(PostgreSQL Inventory)]
-```
+O [diagrama de componentes da entrega](entrega-fase-4/diagrama-componentes.md) reúne a entrada HTTP, os microsserviços, a ponte, os dados e a observabilidade. O [diagrama de sequência](entrega-fase-4/sequencia-autenticacao-abertura-os.md) mostra login, autorização e abertura da ordem.
 
 O API Gateway atende chamadas externas e usa o Lambda Authorizer nas rotas protegidas. REST entre Pods usa os Services ClusterIP, sem passar pelo Gateway externo. O MVP não autentica chamadas REST serviço a serviço; essa limitação está registrada nos serviços. A ponte HTTP **exige** JWT do ServiceAccount e foi escolhida pela equipe porque o Academy Lab impede criar ou alterar roles para acesso direto dos Pods ao SQS. O transporte ativo e as flags de cada deploy precisam ser confirmados no ambiente antes da demonstração.
 
@@ -46,6 +28,6 @@ Billing publica eventos por outbox; a OS consome com inbox idempotente e mantém
 - [ ] Exercitar falha e compensação com evidência de saldo e estado final; validar redrive/DLQ separadamente.
 - [ ] Demonstrar logs, métricas ou traces correlacionados no Datadog.
 - [ ] Vincular os resultados de CI, cobertura, análise de qualidade, BDD e contratos de API nos READMEs dos serviços.
-- [ ] Publicar vídeo de até 15 minutos e PDF final com participantes, links, este diagrama, divisão dos serviços e justificativa da Saga.
+- [ ] Publicar vídeo de até 15 minutos e PDF final com participantes, links, diagrama de componentes, divisão dos serviços e justificativa da Saga.
 
 O sucesso de Terraform Apply, rollout e health check comprova implantação básica. Ele não comprova, isoladamente, as integrações e compensações acima.
