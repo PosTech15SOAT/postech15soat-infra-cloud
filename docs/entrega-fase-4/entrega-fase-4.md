@@ -15,6 +15,8 @@ O NumberOne é uma aplicação de gestão de oficinas. Ela foi dividida em três
 
 **Vídeo de demonstração** · inserir o link público ou não listado do YouTube/Vimeo, com duração máxima de 15 minutos.
 
+O vídeo deve demonstrar a jornada completa da OS, a Saga e o tratamento de falhas, o deploy automatizado de pelo menos um microsserviço com validação de testes e o monitoramento e rastreamento dos fluxos distribuídos.
+
 ## Repositórios
 
 | Repositório | Escopo |
@@ -82,6 +84,8 @@ OS, Billing e Inventory usam conexões e usuários exclusivos na mesma instânci
 
 O pacote de entrega reúne o diagrama de componentes detalhado, a sequência de autenticação e abertura da OS, os RFCs de nuvem, persistência e autenticação e os ADRs de comunicação, fronteiras de acesso e HPA. O guia do Júlio registra o procedimento de reconstrução após reset da AWS Academy. O [índice da documentação](README.md) reúne os complementos e o guia de implantação. Os repositórios de aplicação mantêm seus diagramas, decisões e contratos específicos.
 
+Para iniciar ou reconstruir o ambiente, siga o [guia de deploy na AWS Academy](../deploy-aws-academy-fase4.md), com a configuração da sessão e a ordem das esteiras.
+
 ## Divisão de responsabilidades e escolhas técnicas
 
 | Decisão | Justificativa |
@@ -127,7 +131,6 @@ O orquestrador fica na OS porque ela decide quando um item pode começar, quando
 | SonarQube ou equivalente integrado ao CI | Os três PRs integrados em `develop` acrescentam `pmd:check` 3.28.0 à validação obrigatória, com bloqueio de violações de prioridade 1 e 2 e publicação de `target/pmd.xml`. Para a versão de entrega, guardar os relatórios da revisão promovida à `main`. [OS #19](https://github.com/PosTech15SOAT/numberone-service-order/pull/19) · [Billing #17](https://github.com/PosTech15SOAT/numberone-billing-service/pull/17) · [Inventory #16](https://github.com/PosTech15SOAT/numberone-inventory-service/pull/16) |
 | Docker, manifests, CI/CD e deploy Kubernetes | Os workflows de deploy em `main` concluíram com health check no EKS. Use um deles como evidência no vídeo. [OS](https://github.com/PosTech15SOAT/numberone-service-order/actions/runs/44171381008) · [Billing](https://github.com/PosTech15SOAT/numberone-billing-service/actions/runs/44168213146) · [Inventory](https://github.com/PosTech15SOAT/numberone-inventory-service/actions/runs/44166470357) |
 | `main` protegida por PR e checks obrigatórios | Regras ativas em OS, Billing e Inventory, com PR obrigatório, CI verde e bloqueio de exclusão e force push. Inventory está público. [OS](https://github.com/PosTech15SOAT/numberone-service-order/rules) · [Billing](https://github.com/PosTech15SOAT/numberone-billing-service/rules) · [Inventory](https://github.com/PosTech15SOAT/numberone-inventory-service/rules) · [Governança](https://github.com/PosTech15SOAT/postech15soat-governance/pull/13) |
-| Arquitetura, documentação da Saga e API por repositório | Consultar o [pacote integrado na Cloud](README.md) e conferir as referências para a arquitetura e a API de cada microsserviço. O ADR de escalabilidade registra réplicas fixas no lab de referência e HPA em avaliação para os microsserviços. |
+| Arquitetura, documentação da Saga por repositório | Consultar o [pacote integrado na Cloud](README.md) e conferir as referências para a arquitetura e a API de cada microsserviço. O ADR de escalabilidade registra réplicas fixas no lab de referência e HPA em avaliação para os microsserviços. |
+| Swagger/OpenAPI ou collection Postman em cada microsserviço | [OS · collection Postman](https://github.com/PosTech15SOAT/numberone-service-order/blob/develop/doc/postman/numberone-os.postman_collection.json) · [Billing · collection Postman](https://github.com/PosTech15SOAT/numberone-billing-service/blob/develop/docs/postman/numberone-billing.postman_collection.json) · [Inventory · collection Postman](https://github.com/PosTech15SOAT/numberone-inventory-service/blob/develop/docs/postman/numberone-inventory.postman_collection.json). As collections também podem ser importadas no Insomnia. |
 | Monitoramento e rastreamento distribuído | Cloud declara Datadog. Falta link ou captura sanitizada do fluxo executado no ambiente de entrega. |
-| Vídeo de até 15 minutos | Gravar jornada completa, falha e compensação, deploy com validação e evidência de observabilidade. Inserir link YouTube ou Vimeo. |
-| PDF no portal | Este Markdown é a primeira versão. Confirmar nomes, RMs, link do vídeo, revisões e diagrama final antes de diagramar. |
