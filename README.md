@@ -47,7 +47,7 @@ Responsabilidades entre repositórios:
 
 | Repositório | Responsabilidade |
 | --- | --- |
-| `postech15soat-infra-cloud` | VPC, EKS, ECR, Gateway, VPC Link, NLB, observabilidade, SQS/DLQ e ponte HTTP |
+| `postech15soat-infra-cloud` | VPC, EKS, ECR, Gateway, VPC Link, NLB, observabilidade, SQS/DLQ, ponte HTTP e outputs de infraestrutura |
 | `postech15soat-infra-database` | RDS, databases/roles dos serviços, secrets e tabela DynamoDB de histórico |
 | `numberone-app-auth` | Lambda Login, Lambda Authorizer e assinatura JWT |
 | `numberone-service-order` | Clientes, veículos, OS, orquestração da Saga e projeção do histórico |
@@ -60,10 +60,12 @@ como referência histórica.
 
 ### NLB e conectividade privada
 
-Na Fase 4, este state gerencia o Gateway, VPC Link, NLB e proxy de entrada.
+O state Cloud gerencia o NLB interno, VPC Link, HTTP API e proxies dedicados no
+EKS. As Lambdas Login e Authorizer pertencem ao Auth. O ingresso privado de
+identidade usa HTTP e SGs restritos; não publica `/internal/**` no Gateway.
+A sequência Cloud → Auth → Cloud e os modos `probe`, `public` e `full` estão no
+[roteiro da Fase 4](docs/gateway-fase4.md).
 Os manifests dos três workloads pertencem a seus respectivos repositórios.
-Consulte [rotas e aceite](docs/gateway-fase4.md) para verificar os destinos e
-o isolamento dos endpoints internos.
 
 ## 🧰 Tecnologias
 

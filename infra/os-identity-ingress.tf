@@ -1,15 +1,16 @@
 variable "os_identity_ingress_enabled" {
-  description = "Enable the private HTTPS listener used by the Auth Lambdas to verify OS customer identity."
+  description = "Enable the private HTTP listener used by the Auth Lambdas to verify OS customer identity."
   type        = bool
   default     = false
 }
 
 locals {
   os_identity_enabled       = var.os_identity_ingress_enabled && local.private_gateway_enabled
-  os_identity_listener_port = 443
+  os_identity_listener_port = 8081
   os_identity_proxy_port    = 18443
 }
 
+# Keep the existing description: changing it would replace the client SG used by Auth.
 resource "aws_security_group" "os_identity_client" {
   count       = local.os_identity_enabled ? 1 : 0
   name        = "${local.name_prefix}-os-identity-client"
@@ -99,9 +100,10 @@ resource "helm_release" "os_identity_proxy" {
   atomic      = true
   max_history = 3
 
+  depends_on = [helm_release.gateway_proxy]
+
   values = [yamlencode({
-    port          = local.os_identity_proxy_port
-    tlsSecretName = "numberone-os-identity-tls"
+    port = local.os_identity_proxy_port
     config = templatefile("${path.module}/os-identity-proxy.conf.tftpl", {
       port = local.os_identity_proxy_port
     })
@@ -109,8 +111,10 @@ resource "helm_release" "os_identity_proxy" {
 }
 
 output "os_identity_ingress" {
+  description = "Private HTTP origin for Auth (base_url), exact endpoint URL and Lambda client SG."
   value = local.os_identity_enabled ? {
-    base_url                 = "https://${aws_lb.gateway[0].dns_name}"
+    base_url                 = "http://${aws_lb.gateway[0].dns_name}:${local.os_identity_listener_port}"
+    endpoint_url             = "http://${aws_lb.gateway[0].dns_name}:${local.os_identity_listener_port}/internal/auth/customer-identity"
     client_security_group_id = aws_security_group.os_identity_client[0].id
   } : null
 }

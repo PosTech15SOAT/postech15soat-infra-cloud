@@ -19,6 +19,7 @@ locals {
     "POST /api/public/orcamentos-ordem-servico/aprovar",
     "POST /api/public/orcamentos-ordem-servico/rejeitar",
     "POST /api/public/pagamentos/notificacoes/mercado-pago",
+    "GET /css/budget.css",
   ])
 
   protected_gateway_routes = {
@@ -62,7 +63,7 @@ locals {
   # Compare the original URI with the allowlist before forwarding it unchanged.
   proxy_route_patterns = {
     for route, service in local.proxy_routes :
-    "${split(" ", route)[0]}:${replace(split(" ", route)[1], "/\\{[^}]+\\}/", local.path_id_pattern)}" => service
+    "${split(" ", route)[0]}:${replace(replace(split(" ", route)[1], ".", "\\."), "/\\{[^}]+\\}/", local.path_id_pattern)}" => service
   }
 
   gateway_identity_fields = {
