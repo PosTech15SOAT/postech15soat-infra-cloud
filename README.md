@@ -1,9 +1,15 @@
-> Fase 4: consulte [o procedimento atualizado](docs/phase4.md). Trechos anteriores podem descrever a Fase 3.
+> Fase 4: consulte a [arquitetura distribuída](docs/architecture-fase4.md), o [procedimento de implantação](docs/phase4.md) e o [roteiro de validação da fila](docs/sqs-billing-fase4.md). As seções históricas abaixo ainda descrevem componentes da Fase 3.
 
 # NumberOne Auto Service - Cloud Infrastructure
 
-Infraestrutura cloud compartilhada do Tech Challenge Fase 3 da FIAP para o
+Infraestrutura cloud compartilhada do Tech Challenge Fases 3 e 4 da FIAP para o
 projeto NumberOne.
+
+Na Fase 4, a Cloud gerencia a entrada HTTP, EKS, três repositórios ECR e a fila
+Billing → OS com DLQ. A comunicação REST entre os serviços usa DNS interno e
+Services ClusterIP na porta 8080. A ponte HTTP com JWT é a alternativa escolhida
+para SQS e histórico DynamoDB na conta Academy; sua ativação nos workloads deve
+ser confirmada pelas variáveis de deploy e por teste integrado.
 
 Este repositório é a porta de entrada da infraestrutura AWS do cluster e não
 deve duplicar responsabilidades dos repositórios de aplicação, autenticação,
@@ -20,55 +26,44 @@ O projeto provisiona, via Terraform:
   banco;
 - Internet Gateway e route tables;
 - cluster EKS com managed node group;
-- repositório ECR da API;
+- três repositórios ECR, um por microsserviço;
 - Metrics Server no EKS;
 - Datadog Agent via Helm;
-- regra no security group do cluster para permitir tráfego interno da VPC ao
-  NodePort da API.
+- API Gateway HTTP API, VPC Link, NLB interno e proxy para as rotas externas;
+- fila SQS Billing → OS, DLQ e ponte HTTP para o Academy Lab.
 
-A infraestrutura `production` já está implantada e funcional no AWS Academy.
+A infraestrutura da Fase 4 foi aplicada no AWS Academy; o fluxo de negócio
+completo ainda requer validação integrada.
 Existem apenas os ambientes `Local` e `Production`. A branch `develop` é usada
 para integração, CI e `terraform plan`; ela não representa um ambiente cloud de
 homologação.
 
 ## 🏗️ Arquitetura
 
-Fluxo integrado da solução:
-
-```text
-Cliente / Insomnia
-  -> API Gateway HTTP API
-  -> Lambda Authorizer
-  -> VPC Link
-  -> NLB interno
-  -> EKS
-  -> aplicação Spring
-  -> RDS PostgreSQL
-```
+O [diagrama e as interfaces da Fase 4](docs/architecture-fase4.md) incluem os
+três serviços, bancos, chamadas REST, fila, DLQ e ponte HTTP.
 
 Responsabilidades entre repositórios:
 
 | Repositório | Responsabilidade |
 | --- | --- |
-| `postech15soat-infra-cloud` | VPC, networking, EKS, node group, ECR, observabilidade do Kubernetes e outputs de infraestrutura cloud |
-| `postech15soat-infra-database` | RDS PostgreSQL e infraestrutura específica do banco |
-| `numberone-app-auth` | Lambda Login, Lambda Authorizer, API Gateway, autenticação e consumo dos outputs de rede |
-| `numberone-app-auto-service-api` | aplicação Spring, manifests/deploy da aplicação, Service/NodePort, HPA, PDB e probes quando pertencentes ao workload |
+| `postech15soat-infra-cloud` | VPC, EKS, ECR, Gateway, VPC Link, NLB, observabilidade, SQS/DLQ e ponte HTTP |
+| `postech15soat-infra-database` | RDS, databases/roles dos serviços, secrets e tabela DynamoDB de histórico |
+| `numberone-app-auth` | Lambda Login, Lambda Authorizer e assinatura JWT |
+| `numberone-service-order` | Clientes, veículos, OS, orquestração da Saga e projeção do histórico |
+| `numberone-billing-service` | Orçamentos, pagamentos e publicação de eventos |
+| `numberone-inventory-service` | Catálogo, preços, estoque e compensação de consumo |
 | `postech15soat-governance` | rulesets, branch protection e required checks |
 
-![Arquitetura cloud NumberOne](doc/diagrams/cloud/numberone-geral.drawio.png)
+O [diagrama da Fase 3](doc/diagrams/cloud/numberone-geral.drawio.png) permanece
+como referência histórica.
 
 ### NLB e conectividade privada
 
-Este state não cria recurso `aws_lb`/NLB. A parte existente neste repositório é
-a regra `aws_vpc_security_group_ingress_rule.api_internal_nlb`, que libera os
-`api_node_ports` apenas dentro do CIDR da VPC.
-
-Pela divisão de responsabilidades do projeto, o Service/NodePort e manifests do
-workload pertencem ao repositório `numberone-app-auto-service-api`, enquanto API
-Gateway, autenticação e VPC Link pertencem ao repositório `numberone-app-auth`.
-O NLB interno deve ser validado junto desses repositórios, sem duplicar recursos
-neste state.
+Na Fase 4, este state gerencia o Gateway, VPC Link, NLB e proxy de entrada.
+Os manifests dos três workloads pertencem a seus respectivos repositórios.
+Consulte [rotas e aceite](docs/gateway-fase4.md) para verificar os destinos e
+o isolamento dos endpoints internos.
 
 ## 🧰 Tecnologias
 
