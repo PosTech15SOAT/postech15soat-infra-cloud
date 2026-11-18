@@ -131,13 +131,3 @@ O orquestrador fica na OS porque ela decide quando um item pode começar, quando
 | Monitoramento e rastreamento distribuído | Cloud declara Datadog. Falta link ou captura sanitizada do fluxo executado no ambiente de entrega. |
 | Vídeo de até 15 minutos | Gravar jornada completa, falha e compensação, deploy com validação e evidência de observabilidade. Inserir link YouTube ou Vimeo. |
 | PDF no portal | Este Markdown é a primeira versão. Confirmar nomes, RMs, link do vídeo, revisões e diagrama final antes de diagramar. |
-
-## Informações para fechar com a equipe
-
-| Prioridade | Informação, decisão ou evidência | Com quem alinhar |
-| --- | --- | --- |
-| Aceite da jornada na conta de entrega | Registrar login de operador e cliente, abertura de OS, orçamento, pagamento de teste, quitação e entrega. Gravar também compensação e histórico, com IDs de correlação e evidências do Datadog. | Equipe |
-| Evidência de segurança | Validar titularidade nas rotas do cliente e o limite do caminho Auth → OS pela rede privada. Confirmar acesso do avaliador às evidências. | Marcelo e Matheus |
-| Publicação dos complementos | Usar a revisão publicada da Cloud para os links do PDF, incluindo o índice, os diagramas, RFCs, ADRs e o guia AWS Academy. | Equipe |
-| Evidência de qualidade | Promover a revisão de entrega, reexecutar o BDD nos SHAs finais e guardar os relatórios de CI. | Equipe |
-| Bloqueia a versão para o portal | Enviar nomes completos e RMs, aprovar o vídeo de até 15 minutos e registrar URLs das evidências de deploy e Datadog. | Equipe |
